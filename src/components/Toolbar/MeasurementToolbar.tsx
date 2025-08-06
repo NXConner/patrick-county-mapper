@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { 
   RulerIcon, 
   SquareIcon, 
   MousePointerIcon,
   InfoIcon,
   Eye,
-  Zap
+  Zap,
+  Menu,
+  X
 } from 'lucide-react';
 
 interface MeasurementToolbarProps {
@@ -36,6 +39,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   onAsphaltDetection,
   showAsphaltDetector
 }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const tools = [
     {
       id: 'select',
@@ -108,120 +112,157 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
     }
   ];
 
-  return (
-    <Card className="absolute top-16 sm:top-4 left-4 z-50 bg-gis-toolbar/95 backdrop-blur-sm border-border/50 shadow-toolbar max-w-[280px] sm:max-w-[320px]">
-      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
-        {/* Tools Section */}
-        <div>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Measurement Tools</h3>
-          <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
-            {tools.map((tool) => (
-              <Button
-                key={tool.id}
-                variant={activeTool === tool.id ? "default" : "secondary"}
-                size="sm"
-                onClick={() => onToolChange(tool.id)}
-                className="h-auto p-1.5 sm:p-2 flex flex-col items-center gap-1 transition-fast text-xs"
-                title={tool.description}
-              >
-                {tool.icon}
-                <span className="text-[10px] sm:text-xs">{tool.name}</span>
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <Separator className="bg-border/50" />
-
-        {/* Current Measurement Display */}
-        {currentMeasurement && (
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-2">Current Measurement</h3>
-            <div className="space-y-1">
-              {currentMeasurement.area && (
-                <Badge variant="secondary" className="w-full justify-between">
-                  <span>Area:</span>
-                  <span className="text-gis-success">{currentMeasurement.area.toFixed(2)} sq ft</span>
-                </Badge>
-              )}
-              {currentMeasurement.distance && (
-                <Badge variant="secondary" className="w-full justify-between">
-                  <span>Distance:</span>
-                  <span className="text-gis-measure">{currentMeasurement.distance.toFixed(2)} ft</span>
-                </Badge>
-              )}
-            </div>
-          </div>
-        )}
-
-        <Separator className="bg-border/50" />
-
-        {/* Layer Controls */}
-        <div>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Map Layers</h3>
-          <div className="space-y-1">
-            {layerControls.map((layer) => (
-              <button
-                key={layer.id}
-                onClick={() => onLayerToggle?.(layer.id)}
-                className="w-full flex items-center justify-between p-1 rounded hover:bg-muted/50 transition-fast"
-                title={layer.description}
-              >
-                <span className="text-xs text-muted-foreground">{layer.name}</span>
-                <div className={`w-3 h-3 rounded-full ${layer.active ? 'bg-primary' : 'bg-muted'} transition-fast`} />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <Separator className="my-4" />
-
-        {/* AI Tools Section */}
-        <div>
-          <h3 className="text-sm font-semibold text-foreground mb-2">AI Analysis Tools</h3>
-          <div className="space-y-2">
+  // Toolbar content component to reuse in both mobile and desktop versions
+  const ToolbarContent = () => (
+    <div className="space-y-4">
+      {/* Tools Section */}
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-3">Measurement Tools</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {tools.map((tool) => (
             <Button
-              onClick={onAsphaltDetection}
-              variant={showAsphaltDetector ? "default" : "outline"}
+              key={tool.id}
+              variant={activeTool === tool.id ? "default" : "secondary"}
               size="sm"
-              className="w-full justify-start"
+              onClick={() => {
+                onToolChange(tool.id);
+                setIsMobileMenuOpen(false); // Close mobile menu on tool selection
+              }}
+              className="h-16 sm:h-auto p-2 flex flex-col items-center gap-1 transition-fast text-xs touch-manipulation"
+              title={tool.description}
             >
-              <Zap className="w-4 h-4 mr-2" />
-              {showAsphaltDetector ? 'Hide AI Detection' : 'AI Asphalt Detection'}
+              {tool.icon}
+              <span className="text-xs">{tool.name}</span>
             </Button>
-            
-            {showAsphaltDetector && (
-              <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded">
-                <div className="flex items-center gap-1 mb-1">
-                  <Eye className="w-3 h-3" />
-                  <span className="font-medium">Computer Vision Active</span>
-                </div>
-                <div>Click "Run AI Detection" to analyze satellite imagery for asphalt surfaces</div>
-              </div>
+          ))}
+        </div>
+      </div>
+
+      <Separator className="bg-border/50" />
+
+      {/* Current Measurement Display */}
+      {currentMeasurement && (
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-3">Current Measurement</h3>
+          <div className="space-y-2">
+            {currentMeasurement.area && (
+              <Badge variant="secondary" className="w-full justify-between p-2">
+                <span>Area:</span>
+                <span className="text-gis-success font-medium">{currentMeasurement.area.toFixed(2)} sq ft</span>
+              </Badge>
+            )}
+            {currentMeasurement.distance && (
+              <Badge variant="secondary" className="w-full justify-between p-2">
+                <span>Distance:</span>
+                <span className="text-gis-measure font-medium">{currentMeasurement.distance.toFixed(2)} ft</span>
+              </Badge>
             )}
           </div>
         </div>
+      )}
 
-        <Separator className="my-4" />
+      <Separator className="bg-border/50" />
 
-        {/* Coverage Area */}
-        <div>
-          <h3 className="text-sm font-semibold text-foreground mb-2">Coverage Area</h3>
-          <div className="text-xs text-muted-foreground space-y-1">
-            <div><strong>Virginia Counties:</strong></div>
-            <div>• Patrick County (Primary)</div>
-            <div>• Carroll County</div>
-            <div>• Floyd County</div>
-            <div>• Franklin County</div>
-            <div>• Henry County</div>
-            <div><strong>North Carolina Counties:</strong></div>
-            <div>• Stokes County</div>
-            <div>• Surry County</div>
-          </div>
+      {/* Layer Controls */}
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-3">Map Layers</h3>
+        <div className="space-y-2">
+          {layerControls.map((layer) => (
+            <button
+              key={layer.id}
+              onClick={() => onLayerToggle?.(layer.id)}
+              className="w-full flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-fast touch-manipulation"
+              title={layer.description}
+            >
+              <span className="text-sm text-muted-foreground">{layer.name}</span>
+              <div className={`w-4 h-4 rounded-full ${layer.active ? 'bg-primary' : 'bg-muted'} transition-fast`} />
+            </button>
+          ))}
         </div>
       </div>
-    </Card>
+
+      <Separator className="bg-border/50" />
+
+      {/* AI Tools Section */}
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-3">AI Analysis Tools</h3>
+        <div className="space-y-2">
+          <Button
+            onClick={() => {
+              onAsphaltDetection?.();
+              setIsMobileMenuOpen(false); // Close mobile menu
+            }}
+            variant={showAsphaltDetector ? "default" : "outline"}
+            size="sm"
+            className="w-full justify-start h-12 touch-manipulation"
+          >
+            <Zap className="w-4 h-4 mr-2" />
+            {showAsphaltDetector ? 'Hide AI Detection' : 'AI Asphalt Detection'}
+          </Button>
+          
+          {showAsphaltDetector && (
+            <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-3 rounded">
+              <div className="flex items-center gap-2 mb-1">
+                <Eye className="w-3 h-3" />
+                <span className="font-medium">Computer Vision Active</span>
+              </div>
+              <div>Click "Run AI Detection" to analyze satellite imagery for asphalt surfaces</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Separator className="bg-border/50" />
+
+      {/* Coverage Area */}
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-3">Coverage Area</h3>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div><strong>Virginia Counties:</strong></div>
+          <div>• Patrick County (Primary)</div>
+          <div>• Carroll, Floyd, Franklin, Henry Counties</div>
+          <div><strong>North Carolina Counties:</strong></div>
+          <div>• Stokes & Surry Counties</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile: Sheet/Drawer */}
+      <div className="sm:hidden">
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button
+              size="sm"
+              className="fixed top-20 left-4 z-50 bg-gis-toolbar/95 backdrop-blur-sm shadow-toolbar h-12 w-12 p-0 touch-manipulation"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="bg-gis-toolbar/95 backdrop-blur-sm border-border/50 w-[300px] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle className="text-foreground">Tools & Layers</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">
+              <ToolbarContent />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Desktop: Fixed Card */}
+      <div className="hidden sm:block">
+        <Card className="absolute top-4 left-4 z-50 bg-gis-toolbar/95 backdrop-blur-sm border-border/50 shadow-toolbar max-w-[300px] lg:max-w-[320px]">
+          <div className="p-4">
+            <ToolbarContent />
+          </div>
+        </Card>
+      </div>
+    </>
   );
 };
+        
 
 export default MeasurementToolbar;
