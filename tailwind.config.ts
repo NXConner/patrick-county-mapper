@@ -61,7 +61,31 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				gis: {
+					toolbar: 'hsl(var(--gis-toolbar))',
+					panel: 'hsl(var(--gis-panel))',
+					measure: 'hsl(var(--gis-measure))',
+					draw: 'hsl(var(--gis-draw))',
+					satellite: 'hsl(var(--gis-satellite))',
+					success: 'hsl(var(--gis-success))',
+					warning: 'hsl(var(--gis-warning))',
+					error: 'hsl(var(--gis-error))'
 				}
+			},
+			backgroundImage: {
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-toolbar': 'var(--gradient-toolbar)',
+				'gradient-panel': 'var(--gradient-panel)'
+			},
+			boxShadow: {
+				'toolbar': 'var(--shadow-toolbar)',
+				'panel': 'var(--shadow-panel)',
+				'floating': 'var(--shadow-floating)'
+			},
+			transitionTimingFunction: {
+				'smooth': 'var(--transition-smooth)',
+				'fast': 'var(--transition-fast)'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
