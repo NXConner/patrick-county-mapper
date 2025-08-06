@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import MapContainer from '@/components/Map/MapContainer';
+import FreeMapContainer from '@/components/Map/FreeMapContainer';
+import MapServiceDropdown from '@/components/Map/MapServiceDropdown';
 import MeasurementToolbar from '@/components/Toolbar/MeasurementToolbar';
 import PropertyPanel from '@/components/PropertyInfo/PropertyPanel';
 
@@ -7,6 +8,7 @@ const Index = () => {
   const [activeTool, setActiveTool] = useState('select');
   const [currentMeasurement, setCurrentMeasurement] = useState<{ distance?: number; area?: number }>();
   const [propertyPanelOpen, setPropertyPanelOpen] = useState(false);
+  const [selectedMapService, setSelectedMapService] = useState('leaflet-osm');
 
   const handleMeasurement = (measurement: { distance?: number; area?: number }) => {
     setCurrentMeasurement(measurement);
@@ -15,9 +17,10 @@ const Index = () => {
   return (
     <div className="h-screen w-full relative overflow-hidden bg-gis-satellite">
       {/* Main Map Container */}
-      <MapContainer 
+      <FreeMapContainer 
         onMeasurement={handleMeasurement}
         activeTool={activeTool}
+        mapService={selectedMapService}
       />
       
       {/* Measurement Toolbar */}
@@ -58,13 +61,20 @@ const Index = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-              Live Data
+          <div className="flex items-center gap-2 md:gap-4 flex-wrap">
+            <MapServiceDropdown
+              selectedService={selectedMapService}
+              onServiceChange={setSelectedMapService}
+              className="min-w-[180px] md:min-w-[200px]"
+            />
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                Live Data
+              </div>
+              <span className="hidden sm:inline">•</span>
+              <span className="hidden sm:inline">Patrick County, VA + Surrounding Areas</span>
             </div>
-            <span>•</span>
-            <span>Patrick County, VA + Surrounding Areas</span>
           </div>
         </div>
       </div>
