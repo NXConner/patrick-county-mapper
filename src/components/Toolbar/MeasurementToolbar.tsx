@@ -3,21 +3,38 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { 
+  RulerIcon, 
+  SquareIcon, 
+  MousePointerIcon,
+  InfoIcon,
+  Eye,
+  Zap
+} from 'lucide-react';
 
 interface MeasurementToolbarProps {
   activeTool: string;
   onToolChange: (tool: string) => void;
   currentMeasurement?: { distance?: number; area?: number };
+  layerStates?: {
+    satellite: boolean;
+    roads: boolean;
+    labels: boolean;
+    property: boolean;
+  };
   onLayerToggle?: (layerId: string) => void;
-  layerStates?: { satellite: boolean; roads: boolean; labels: boolean; property: boolean };
+  onAsphaltDetection?: () => void;
+  showAsphaltDetector?: boolean;
 }
 
 const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   activeTool,
   onToolChange,
   currentMeasurement,
+  layerStates,
   onLayerToggle,
-  layerStates
+  onAsphaltDetection,
+  showAsphaltDetector
 }) => {
   const tools = [
     {
@@ -157,9 +174,37 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
           </div>
         </div>
 
-        <Separator className="bg-border/50" />
+        <Separator className="my-4" />
 
-        {/* Location Info */}
+        {/* AI Tools Section */}
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-2">AI Analysis Tools</h3>
+          <div className="space-y-2">
+            <Button
+              onClick={onAsphaltDetection}
+              variant={showAsphaltDetector ? "default" : "outline"}
+              size="sm"
+              className="w-full justify-start"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              {showAsphaltDetector ? 'Hide AI Detection' : 'AI Asphalt Detection'}
+            </Button>
+            
+            {showAsphaltDetector && (
+              <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded">
+                <div className="flex items-center gap-1 mb-1">
+                  <Eye className="w-3 h-3" />
+                  <span className="font-medium">Computer Vision Active</span>
+                </div>
+                <div>Click "Run AI Detection" to analyze satellite imagery for asphalt surfaces</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <Separator className="my-4" />
+
+        {/* Coverage Area */}
         <div>
           <h3 className="text-sm font-semibold text-foreground mb-2">Coverage Area</h3>
           <div className="text-xs text-muted-foreground space-y-1">

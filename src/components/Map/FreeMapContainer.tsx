@@ -179,7 +179,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   useImperativeHandle(ref, () => ({
     handleLocationSearch,
     toggleLayer,
-    getLayerStates: () => layerStates
+    getLayerStates: () => layerStates,
+    getMap: () => map.current
   }), [layerStates]);
 
   // Patrick County, VA coordinates

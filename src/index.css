@@ -164,3 +164,53 @@ All colors MUST be HSL for consistent theming.
   margin: 8px 12px !important;
   line-height: 1.4;
 }
+
+/* Asphalt detection overlay styles */
+.asphalt-driveway {
+  stroke: #3b82f6 !important;
+  fill: #3b82f6 !important;
+}
+
+.asphalt-parking_lot {
+  stroke: #10b981 !important;
+  fill: #10b981 !important;
+}
+
+.asphalt-road {
+  stroke: #f59e0b !important;
+  fill: #f59e0b !important;
+}
+
+.asphalt-path {
+  stroke: #8b5cf6 !important;
+  fill: #8b5cf6 !important;
+}
+
+.asphalt-high-confidence {
+  animation: pulse-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+  from {
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+  to {
+    filter: drop-shadow(0 0 8px currentColor) brightness(1.1);
+  }
+}
+
+/* AI detection progress styles */
+.detection-progress {
+  background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b);
+  background-size: 200% 100%;
+  animation: progress-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes progress-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

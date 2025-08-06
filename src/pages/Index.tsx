@@ -1,24 +1,32 @@
 import React, { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import FreeMapContainer from '@/components/Map/FreeMapContainer';
 import MapServiceDropdown from '@/components/Map/MapServiceDropdown';
 import MeasurementToolbar from '@/components/Toolbar/MeasurementToolbar';
 import PropertyPanel from '@/components/PropertyInfo/PropertyPanel';
 import AddressSearchBar from '@/components/Map/AddressSearchBar';
+import AsphaltDetector from '@/components/Map/AsphaltDetector';
+import ServiceInfo from '@/components/ServiceInfo/ServiceInfo';
+import { MapPinIcon } from 'lucide-react';
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState('select');
   const [currentMeasurement, setCurrentMeasurement] = useState<{ distance?: number; area?: number }>();
   const [propertyPanelOpen, setPropertyPanelOpen] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState(null);
   const [selectedMapService, setSelectedMapService] = useState('esri-satellite');
-  const mapRef = useRef<any>(null);
-
-  // Layer states
   const [layerStates, setLayerStates] = useState({
     satellite: true,
     roads: true,
     labels: true,
     property: false
   });
+
+  const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
+
+  // Map reference for communication with map component
+  const mapRef = useRef(null);
 
   const handleMeasurement = (measurement: { distance?: number; area?: number }) => {
     setCurrentMeasurement(measurement);
@@ -94,21 +102,40 @@ const Index = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Main Map Container */}
-        <FreeMapContainer 
-          onMeasurement={handleMeasurement}
-          activeTool={activeTool}
-          mapService={selectedMapService}
+        {/* Map Component */}
+        <FreeMapContainer
           ref={mapRef}
+          activeTool={activeTool}
+          onMeasurement={handleMeasurement}
+          onPropertySelect={(property) => {
+            setSelectedProperty(property);
+            setPropertyPanelOpen(true);
+          }}
+          selectedMapService={selectedMapService}
+          layerStates={layerStates}
+          onLayerToggle={handleLayerToggle}
         />
-        
-        {/* Measurement Toolbar */}
+
+        {/* AI Asphalt Detection */}
+        {showAsphaltDetector && (
+          <AsphaltDetector 
+            map={mapRef.current?.getMap?.() || null}
+            onDetectionComplete={(results) => {
+              console.log('Asphalt detection results:', results);
+              toast.success(`AI analysis complete: ${results.length} surfaces detected`);
+            }}
+          />
+        )}
+
+        {/* Measurement Tools */}
         <MeasurementToolbar
           activeTool={activeTool}
           onToolChange={setActiveTool}
           currentMeasurement={currentMeasurement}
-          onLayerToggle={handleLayerToggle}
           layerStates={layerStates}
+          onLayerToggle={handleLayerToggle}
+          onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
+          showAsphaltDetector={showAsphaltDetector}
         />
         
         {/* Property Information Panel */}
