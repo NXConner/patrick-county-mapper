@@ -149,9 +149,15 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
         <div>
           <h3 className="text-sm font-semibold text-foreground mb-2">Coverage Area</h3>
           <div className="text-xs text-muted-foreground space-y-1">
-            <div>• Patrick County, VA</div>
-            <div>• Stokes County, NC</div>
-            <div>• Surry County, NC</div>
+            <div><strong>Virginia Counties:</strong></div>
+            <div>• Patrick County (Primary)</div>
+            <div>• Carroll County</div>
+            <div>• Floyd County</div>
+            <div>• Franklin County</div>
+            <div>• Henry County</div>
+            <div><strong>North Carolina Counties:</strong></div>
+            <div>• Stokes County</div>
+            <div>• Surry County</div>
           </div>
         </div>
       </div>

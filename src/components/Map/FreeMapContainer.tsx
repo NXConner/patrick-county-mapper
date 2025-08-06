@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
@@ -23,18 +23,74 @@ interface FreeMapContainerProps {
   onMeasurement?: (measurement: { distance?: number; area?: number }) => void;
   activeTool?: string;
   mapService?: string;
+  onLocationSearch?: (lat: number, lng: number, address: string) => void;
 }
 
-const FreeMapContainer: React.FC<FreeMapContainerProps> = ({ 
+interface FreeMapContainerRef {
+  handleLocationSearch: (lat: number, lng: number, address: string) => void;
+}
+
+const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(({ 
   onMeasurement, 
   activeTool,
-  mapService = 'esri-satellite'
-}) => {
+  mapService = 'esri-satellite',
+  onLocationSearch
+}, ref) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [currentLayer, setCurrentLayer] = useState<L.TileLayer | null>(null);
   const drawnItems = useRef<L.FeatureGroup>(new L.FeatureGroup());
+  const searchMarker = useRef<L.Marker | null>(null);
+
+  // Expanded coverage area including all surrounding counties
+  const coverageCenter: [number, number] = [36.6837, -80.2876]; // Patrick County center
+  
+  // Handle location search from address search bar
+  const handleLocationSearch = (lat: number, lng: number, address: string) => {
+    if (!map.current) return;
+
+    // Remove previous search marker
+    if (searchMarker.current) {
+      map.current.removeLayer(searchMarker.current);
+    }
+
+    // Create new search marker
+    const marker = L.marker([lat, lng], {
+      icon: L.divIcon({
+        html: `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#10b981" stroke="#ffffff" stroke-width="2"/>
+          <circle cx="12" cy="9" r="2.5" fill="#ffffff"/>
+        </svg>`,
+        className: 'search-marker-icon',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+      })
+    }).addTo(map.current);
+
+    searchMarker.current = marker;
+
+    // Add popup with address
+    marker.bindPopup(`
+      <div class="p-2">
+        <div class="font-semibold text-sm">Search Result</div>
+        <div class="text-xs text-gray-600 mt-1">${address}</div>
+      </div>
+    `).openPopup();
+
+    // Pan to location
+    map.current.setView([lat, lng], 16);
+
+    // Call parent callback if provided
+    if (onLocationSearch) {
+      onLocationSearch(lat, lng, address);
+    }
+  };
+
+  // Expose the search handler for parent components
+  useImperativeHandle(ref, () => ({
+    handleLocationSearch
+  }), []);
 
   // Patrick County, VA coordinates
   const patrickCountyCenter: [number, number] = [36.6837, -80.2876];
@@ -102,8 +158,8 @@ const FreeMapContainer: React.FC<FreeMapContainerProps> = ({
 
     // Initialize map centered on Patrick County, VA
     map.current = L.map(mapContainer.current, {
-      center: patrickCountyCenter,
-      zoom: 11,
+      center: coverageCenter,
+      zoom: 10, // Zoom out slightly to show more area
       zoomControl: true
     });
 
@@ -122,15 +178,16 @@ const FreeMapContainer: React.FC<FreeMapContainerProps> = ({
       position: 'bottomleft'
     }).addTo(map.current);
 
-    // Set map bounds to focus on Patrick County area
+    // Expanded map bounds to include all surrounding counties:
+    // Patrick County and surrounding: Carroll, Floyd, Franklin, Henry, Stokes County NC, Surry County NC
     const bounds = L.latLngBounds(
-      L.latLng(36.0, -81.5), // Southwest corner
-      L.latLng(37.2, -79.5)  // Northeast corner
+      L.latLng(35.8, -81.8), // Southwest corner (includes Surry County, NC)
+      L.latLng(37.3, -79.2)  // Northeast corner (includes Franklin & Floyd Counties)
     );
     map.current.setMaxBounds(bounds);
 
     setMapLoaded(true);
-    toast.success(`Map loaded with ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}! Focused on Patrick County, VA region`);
+    toast.success(`Map loaded with ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}! Covering Patrick County, VA + surrounding areas`);
 
     return () => {
       if (map.current) {
@@ -245,6 +302,6 @@ const FreeMapContainer: React.FC<FreeMapContainerProps> = ({
       </div>
     </div>
   );
-};
+});
 
 export default FreeMapContainer;

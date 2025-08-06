@@ -1,73 +1,148 @@
-# Welcome to your Lovable project
+# Patrick County GIS Pro
 
-## Project info
+A modern, high-resolution mapping and measurement application focused on Patrick County, Virginia and surrounding areas.
 
-**URL**: https://lovable.dev/projects/994be453-2a62-435a-b05e-86e06e472a7e
+## 🗺️ **Coverage Area**
 
-## How can I edit this code?
+### Virginia Counties
+- **Patrick County** (Primary coverage area)
+- **Carroll County**
+- **Floyd County** 
+- **Franklin County**
+- **Henry County**
 
-There are several ways of editing your application.
+### North Carolina Counties
+- **Stokes County**
+- **Surry County**
 
-**Use Lovable**
+## ✨ **Key Features**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/994be453-2a62-435a-b05e-86e06e472a7e) and start prompting.
+### 🛰️ **High-Resolution Satellite Imagery**
+- **ESRI World Imagery** as default (completely free, no API key required)
+- **Google Satellite** and **Bing Satellite** options
+- Up to **zoom level 20** for detailed property inspection
+- Recent imagery updates with global coverage
 
-Changes made via Lovable will be committed automatically to this repo.
+### 🔍 **Address Search**
+- **Free geocoding** powered by OpenStreetMap Nominatim
+- Search addresses, places, and coordinates
+- **Real-time suggestions** with auto-complete
+- **Instant map navigation** to search results
+- Covers all Patrick County + surrounding areas
 
-**Use your preferred IDE**
+### 📱 **Mobile Optimized**
+- **Responsive design** for all screen sizes
+- **Touch-friendly** interface for tablets and phones
+- **Optimized layouts** for portrait and landscape modes
+- **Android APK support** via Capacitor
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 📏 **Measurement Tools**
+- **Area measurement** for driveways, parking lots, property boundaries
+- **Distance measurement** for roads, fences, property lines
+- **Point markers** for location marking
+- **Export capabilities** to GeoJSON format
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 🎯 **Professional GIS Features**
+- **Layer controls** for satellite, roads, labels, property lines
+- **Scale control** with imperial measurements
+- **High-precision** coordinate system
+- **Property information panel** integration
 
-Follow these steps:
+## 🚀 **Getting Started**
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Prerequisites
+- **Node.js** 18+ 
+- **npm** or **yarn**
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/NXConner/patrick-county-mapper.git
+cd patrick-county-mapper
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Building for Production
+```bash
+# Build web application
+npm run build
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+# Build Android APK
+npm run android:build
+```
 
-**Use GitHub Codespaces**
+## 🔧 **Available Scripts**
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run cap:sync` - Sync changes to Capacitor
+- `npm run cap:build` - Build web app and sync with Capacitor
+- `npm run android:build` - Build Android APK
+- `npm run android:dev` - Build and run on Android device
 
-## What technologies are used for this project?
+## 🗺️ **Map Services**
 
-This project is built with:
+- **ESRI World Imagery** (Default) - High-resolution satellite imagery
+- **Google Satellite** - Google's satellite imagery
+- **OpenStreetMap** - Open source street maps
+- **MapLibre GL JS** - Open source mapping library
+- **LocationIQ** - Geocoding and mapping API
+- **Jawg Maps** - Customizable mapping platform
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📱 **Mobile App**
 
-## How can I deploy this project?
+Generate Android APK using Capacitor:
 
-Simply open [Lovable](https://lovable.dev/projects/994be453-2a62-435a-b05e-86e06e472a7e) and click on Share -> Publish.
+```bash
+npm run android:build
+```
 
-## Can I connect a custom domain to my Lovable project?
+The APK will be generated in `android/app/build/outputs/apk/debug/`
 
-Yes, you can!
+## 🛠️ **Technology Stack**
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- **React 18** with TypeScript
+- **Vite** for fast development and building
+- **Leaflet** for interactive mapping
+- **Tailwind CSS** for modern styling
+- **shadcn/ui** for consistent UI components
+- **Capacitor** for mobile app generation
+- **OpenStreetMap Nominatim** for free geocoding
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🎯 **Use Cases**
+
+- **Property surveying** and boundary measurement
+- **Land development** planning and visualization
+- **Agricultural** field mapping and measurement
+- **Construction** site planning and area calculation
+- **Real estate** property analysis and documentation
+- **Emergency services** location and area assessment
+
+## 🔒 **Privacy & Data**
+
+- **No user tracking** or data collection
+- **Free services** - no API keys required for core functionality
+- **Client-side processing** - measurements calculated locally
+- **Open source** mapping data from OpenStreetMap
+
+## 📄 **License**
+
+This project is licensed under the MIT License.
+
+## 🤝 **Contributing**
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📞 **Support**
+
+For questions or support, please open an issue on GitHub.
+
+---
+
+**Patrick County GIS Pro** - Professional mapping tools for Patrick County, Virginia and surrounding areas.
