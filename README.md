@@ -126,10 +126,12 @@ The APK will be generated in `android/app/build/outputs/apk/debug/`
 
 ## 🔒 **Privacy & Data**
 
+- **Real property data** - Connected to Patrick County property database via Supabase
 - **No user tracking** or data collection
 - **Free services** - no API keys required for core functionality
 - **Client-side processing** - measurements calculated locally
 - **Open source** mapping data from OpenStreetMap
+- **Live property information** - Tax assessments, ownership, sales history
 
 ## 📄 **License**
 

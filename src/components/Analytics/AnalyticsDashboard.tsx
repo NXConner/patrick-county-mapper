@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { PropertyInfo } from '@/hooks/usePropertyData';
 import { MeasurementData } from '@/hooks/useExportMeasurements';
+import { getPropertyAnalytics } from '@/lib/propertyService';
 
 interface AnalyticsDashboardProps {
   properties: PropertyInfo[];
@@ -149,15 +150,42 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       .map(([year, count]) => ({ year: parseInt(year), count }))
       .sort((a, b) => a.year - b.year);
 
-    // Sales trend (mock data for demonstration)
-    const salesTrend = [
-      { month: 'Jan', averagePrice: 145000, salesCount: 12 },
-      { month: 'Feb', averagePrice: 152000, salesCount: 8 },
-      { month: 'Mar', averagePrice: 148000, salesCount: 15 },
-      { month: 'Apr', averagePrice: 155000, salesCount: 18 },
-      { month: 'May', averagePrice: 162000, salesCount: 22 },
-      { month: 'Jun', averagePrice: 158000, salesCount: 20 }
-    ];
+    // Calculate real sales trend from property sales history
+    const salesTrend = useMemo(() => {
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const now = new Date();
+      const trend = [];
+
+      for (let i = 5; i >= 0; i--) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+        
+        // Collect all sales for this month from all properties
+        const monthSales: number[] = [];
+        properties.forEach(property => {
+          if (property.salesHistory) {
+            property.salesHistory.forEach(sale => {
+              if (sale.date >= monthDate && sale.date < nextMonthDate) {
+                monthSales.push(sale.price);
+              }
+            });
+          }
+        });
+
+        const salesCount = monthSales.length;
+        const averagePrice = salesCount > 0 
+          ? Math.round(monthSales.reduce((sum, price) => sum + price, 0) / salesCount)
+          : 0;
+
+        trend.push({
+          month: monthNames[monthDate.getMonth()],
+          averagePrice,
+          salesCount
+        });
+      }
+
+      return trend;
+    }, [properties]);
 
     return {
       totalProperties,

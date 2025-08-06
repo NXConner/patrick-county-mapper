@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#2563eb" stroke="#1d4ed8" stroke-width="4"/>
+  
+  <!-- Map outline representing Virginia/Patrick County -->
+  <path d="M120 200 C150 180, 200 160, 280 180 C350 190, 380 220, 390 260 C385 310, 360 350, 320 370 C280 380, 220 375, 180 360 C140 340, 120 300, 120 260 Z" 
+        fill="#e0f2fe" stroke="#0369a1" stroke-width="2"/>
+  
+  <!-- Property boundaries grid -->
+  <g stroke="#3b82f6" stroke-width="1" opacity="0.6">
+    <line x1="160" y1="220" x2="340" y2="220"/>
+    <line x1="160" y1="260" x2="340" y2="260"/>
+    <line x1="160" y1="300" x2="340" y2="300"/>
+    <line x1="180" y1="200" x2="180" y2="320"/>
+    <line x1="220" y1="200" x2="220" y2="320"/>
+    <line x1="260" y1="200" x2="260" y2="320"/>
+    <line x1="300" y1="200" x2="300" y2="320"/>
+  </g>
+  
+  <!-- Location pin for Stuart, VA -->
+  <circle cx="256" cy="256" r="8" fill="#dc2626"/>
+  <path d="M256 240 C265 240, 272 247, 272 256 C272 265, 256 280, 256 280 C256 280, 240 265, 240 256 C240 247, 247 240, 256 240 Z" 
+        fill="#dc2626"/>
+  
+  <!-- Mountains in background -->
+  <path d="M120 320 L140 290 L160 310 L180 280 L200 300 L220 270 L240 290 L260 260 L280 280 L300 250 L320 270 L340 240 L360 260 L380 320 Z" 
+        fill="#059669" opacity="0.3"/>
+  
+  <!-- Text "PC GIS" -->
+  <text x="256" y="400" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="32" font-weight="bold">PC GIS</text>
+  
+  <!-- Survey markers -->
+  <circle cx="200" cy="240" r="3" fill="#f59e0b"/>
+  <circle cx="280" cy="280" r="3" fill="#f59e0b"/>
+  <circle cx="320" cy="240" r="3" fill="#f59e0b"/>
+  
+  <!-- Compass rose -->
+  <g transform="translate(380, 140)">
+    <circle cx="0" cy="0" r="20" fill="#1f2937" opacity="0.8"/>
+    <path d="M0 -15 L3 -3 L0 0 L-3 -3 Z" fill="#ef4444"/>
+    <path d="M0 15 L3 3 L0 0 L-3 3 Z" fill="#6b7280"/>
+    <text x="0" y="-25" text-anchor="middle" fill="white" font-size="8" font-weight="bold">N</text>
+  </g>
+</svg>
