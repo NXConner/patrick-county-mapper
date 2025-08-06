@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Search, MapPin, X, Clock, Navigation, Star, Trash2, RotateCcw, Filter } from 'lucide-react';
+import { Search, MapPin, X, Clock, Navigation, Star, Trash2, RotateCcw, Filter, Globe, Building2, Home, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -99,304 +99,239 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
         extratags: '1',
         namedetails: '1'
       });
-      
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?${params}`,
-        {
-          headers: {
-            'User-Agent': 'Patrick County GIS Pro/1.0'
-          }
-        }
-      );
+
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`);
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data: SearchResult[] = await response.json();
-      
-      // Sort results by importance and relevance
-      const sortedResults = data.sort((a, b) => {
-        const importanceA = a.importance || 0;
-        const importanceB = b.importance || 0;
-        return importanceB - importanceA;
-      });
-      
-      setResults(sortedResults);
-      setShowResults(sortedResults.length > 0);
-      setSelectedIndex(-1);
+      const data = await response.json();
+      setResults(data);
       setRetryCount(0);
-      
+      setShowResults(true);
     } catch (error) {
-      console.error('Geocoding error:', error);
+      console.error('Search error:', error);
       
-      // Retry logic for network errors
       if (retryAttempt < 2) {
+        setRetryCount(retryAttempt + 1);
         setTimeout(() => {
           searchAddress(searchQuery, retryAttempt + 1);
         }, 1000 * (retryAttempt + 1));
-        setRetryCount(retryAttempt + 1);
-        return;
+      } else {
+        toast.error('Search failed. Please try again.', {
+          description: "Unable to connect to search service"
+        });
+        setResults([]);
+        setShowResults(false);
       }
-      
-      toast.error(
-        retryAttempt > 0 
-          ? 'Address search failed after retries. Please try again.' 
-          : 'Address search temporarily unavailable. Retrying...'
-      );
-      setResults([]);
-      setShowResults(false);
-      setRetryCount(0);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  // Debounced search with 400ms delay for better UX
-  const debouncedSearch = useDebounced(searchAddress, 400);
+  const debouncedSearch = useDebounced(searchAddress, 300);
 
-  // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
+    setSelectedIndex(-1);
     
-    if (value.length === 0) {
+    if (value.length >= 2) {
+      debouncedSearch(value);
+    } else {
       setResults([]);
       setShowResults(false);
       setSearchMode('history');
-      setSelectedIndex(-1);
-    } else if (value.length >= 2) {
-      debouncedSearch(value);
     }
   };
 
-  // Enhanced keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!showResults) return;
-
     const currentResults = searchMode === 'search' ? results : getHistoryResults();
     
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
         setSelectedIndex(prev => 
-          prev < currentResults.length - 1 ? prev + 1 : 0
+          prev < currentResults.length - 1 ? prev + 1 : prev
         );
         break;
       case 'ArrowUp':
         e.preventDefault();
-        setSelectedIndex(prev => 
-          prev > 0 ? prev - 1 : currentResults.length - 1
-        );
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
         break;
       case 'Enter':
         e.preventDefault();
         if (selectedIndex >= 0 && selectedIndex < currentResults.length) {
-          if (searchMode === 'search') {
-            handleResultSelect(currentResults[selectedIndex]);
+          if (searchMode === 'history') {
+            handleHistorySelect(currentResults[selectedIndex] as SearchHistoryItem);
           } else {
-            handleHistorySelect(getRecentSearches()[selectedIndex]);
+            handleResultSelect(currentResults[selectedIndex] as SearchResult);
           }
         }
         break;
       case 'Escape':
-        e.preventDefault();
         setShowResults(false);
-        setSelectedIndex(-1);
         inputRef.current?.blur();
         break;
-      case 'Tab':
-        // Allow tab to work normally but close results
-        setShowResults(false);
-        setSelectedIndex(-1);
-        break;
     }
   };
 
-  // Get history results for display
   const getHistoryResults = () => {
-    if (query.length === 0) {
-      return getRecentSearches(5);
-    }
-    return searchInHistory(query);
+    return query ? searchInHistory(query) : getRecentSearches(5);
   };
 
-  // Handle search result selection
   const handleResultSelect = (result: SearchResult) => {
     const lat = parseFloat(result.lat);
     const lng = parseFloat(result.lon);
-    const displayName = formatAddress(result);
+    const address = formatAddress(result);
     
-    onLocationSelect(lat, lng, displayName);
-    setQuery(displayName);
+    addToHistory(address, lat, lng);
+    onLocationSelect(lat, lng, address);
+    
+    setQuery(address);
     setShowResults(false);
     setSelectedIndex(-1);
     
-    // Add to search history
-    addToHistory({
-      query: query,
-      address: displayName,
-      lat,
-      lng
-    });
-    
-    toast.success(`Located: ${displayName}`, {
-      description: 'Click on the map to see more details'
+    toast.success('Location selected', {
+      description: address,
+      action: {
+        label: "View on Map",
+        onClick: () => console.log("View on map")
+      }
     });
   };
 
-  // Handle history item selection
   const handleHistorySelect = (item: SearchHistoryItem) => {
     onLocationSelect(item.lat, item.lng, item.address);
     setQuery(item.address);
     setShowResults(false);
     setSelectedIndex(-1);
     
-    // Update timestamp in history
-    addToHistory({
-      query: item.query,
-      address: item.address,
-      lat: item.lat,
-      lng: item.lng
+    toast.success('Location from history', {
+      description: item.address
     });
-    
-    toast.success(`Located: ${item.address}`);
   };
 
-  // Handle current location
   const handleCurrentLocation = async () => {
-    const coords = await getCurrentLocation();
-    if (coords) {
-      try {
+    try {
+      const position = await getCurrentLocation();
+      if (position) {
+        const { latitude, longitude } = position.coords;
+        
         // Reverse geocode to get address
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?` +
-          `lat=${coords.lat}&lon=${coords.lng}&format=json&addressdetails=1`,
-          {
-            headers: {
-              'User-Agent': 'Patrick County GIS Pro/1.0'
-            }
-          }
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
         );
         
         if (response.ok) {
           const data = await response.json();
-          const address = data.display_name || 'Current Location';
+          const address = data.display_name;
           
-          onLocationSelect(coords.lat, coords.lng, address);
+          addToHistory(address, latitude, longitude);
+          onLocationSelect(latitude, longitude, address);
           setQuery(address);
           setShowResults(false);
           
-          addToHistory({
-            query: 'Current Location',
-            address,
-            lat: coords.lat,
-            lng: coords.lng
+          toast.success('Current location found', {
+            description: address
           });
-          
-          toast.success('Located your current position');
-        } else {
-          onLocationSelect(coords.lat, coords.lng, 'Current Location');
-          toast.success('Located your current position');
         }
-      } catch (error) {
-        // Still use coordinates even if reverse geocoding fails
-        onLocationSelect(coords.lat, coords.lng, 'Current Location');
-        toast.success('Located your current position');
       }
-    } else if (geoError) {
-      toast.error(geoError);
+    } catch (error) {
+      console.error('Geolocation error:', error);
+      toast.error('Unable to get current location', {
+        description: "Please check your location permissions"
+      });
     }
   };
 
-  // Clear search
   const clearSearch = () => {
     setQuery('');
     setResults([]);
     setShowResults(false);
     setSelectedIndex(-1);
-    setSearchMode('history');
     inputRef.current?.focus();
   };
 
-  // Enhanced address formatting
   const formatAddress = (result: SearchResult) => {
-    const addr = result.address;
-    if (!addr) return result.display_name;
+    const address = result.address;
+    if (!address) return result.display_name;
     
     const parts = [];
     
-    // Street address
-    if (addr.house_number && addr.road) {
-      parts.push(`${addr.house_number} ${addr.road}`);
-    } else if (addr.road) {
-      parts.push(addr.road);
+    if (address.house_number && address.road) {
+      parts.push(`${address.house_number} ${address.road}`);
+    } else if (address.road) {
+      parts.push(address.road);
     }
     
-    // Area/Neighborhood
-    if (addr.neighbourhood || addr.suburb) {
-      parts.push(addr.neighbourhood || addr.suburb);
+    if (address.city) {
+      parts.push(address.city);
+    } else if (address.suburb) {
+      parts.push(address.suburb);
     }
     
-    // City
-    if (addr.city) {
-      parts.push(addr.city);
+    if (address.county) {
+      parts.push(address.county);
     }
     
-    // County/State
-    const locationParts = [];
-    if (addr.county) locationParts.push(addr.county);
-    if (addr.state) locationParts.push(addr.state);
-    if (locationParts.length > 0) {
-      parts.push(locationParts.join(', '));
+    if (address.state) {
+      parts.push(address.state);
     }
     
-    return parts.join(', ') || result.display_name;
+    if (address.postcode) {
+      parts.push(address.postcode);
+    }
+    
+    return parts.length > 0 ? parts.join(', ') : result.display_name;
   };
 
-  // Get result type icon
   const getResultIcon = (result: SearchResult) => {
-    const type = result.type?.toLowerCase() || '';
-    const resultClass = result.class?.toLowerCase() || '';
+    const type = result.type || result.class || '';
     
-    if (type.includes('house') || resultClass === 'building') {
-      return <MapPin className="w-4 h-4 text-blue-500" />;
+    switch (type) {
+      case 'house':
+      case 'residential':
+        return <Home className="w-4 h-4 text-blue-600" />;
+      case 'building':
+      case 'commercial':
+        return <Building2 className="w-4 h-4 text-purple-600" />;
+      case 'road':
+      case 'highway':
+        return <Map className="w-4 h-4 text-green-600" />;
+      case 'place':
+      case 'city':
+      case 'town':
+        return <Globe className="w-4 h-4 text-orange-600" />;
+      default:
+        return <MapPin className="w-4 h-4 text-muted-foreground" />;
     }
-    if (type.includes('road') || resultClass === 'highway') {
-      return <MapPin className="w-4 h-4 text-gray-500" />;
-    }
-    if (resultClass === 'amenity') {
-      return <Star className="w-4 h-4 text-yellow-500" />;
-    }
-    return <MapPin className="w-4 h-4 text-primary" />;
   };
 
-  // Handle focus - show history if no query
   const handleFocus = () => {
-    if (query.length === 0) {
-      const recentSearches = getRecentSearches(5);
-      if (recentSearches.length > 0) {
-        setSearchMode('history');
-        setShowResults(true);
-      }
+    if (query.length < 2) {
+      setSearchMode('history');
+      setShowResults(true);
     }
   };
 
-  // Handle blur - delay hiding results to allow clicking
   const handleBlur = () => {
+    // Delay hiding results to allow for clicks
     setTimeout(() => {
       setShowResults(false);
-      setSelectedIndex(-1);
     }, 200);
   };
 
-  // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (resultsRef.current && !resultsRef.current.contains(event.target as Node) &&
-          inputRef.current && !inputRef.current.contains(event.target as Node)) {
+      if (
+        resultsRef.current && 
+        !resultsRef.current.contains(event.target as Node) &&
+        inputRef.current && 
+        !inputRef.current.contains(event.target as Node)
+      ) {
         setShowResults(false);
-        setSelectedIndex(-1);
       }
     };
 
@@ -423,7 +358,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          className="pl-10 pr-20 bg-background/95 backdrop-blur-sm border-border/50 text-base h-12 touch-manipulation focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+          className="input-enhanced pl-10 pr-20 h-12 text-base touch-manipulation"
           autoComplete="off"
           autoCorrect="off"
           autoCapitalize="off"
@@ -438,11 +373,11 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
               size="sm"
               onClick={handleCurrentLocation}
               disabled={geoLoading}
-              className="h-8 w-8 p-0 hover:bg-primary/10"
+              className="h-8 w-8 p-0 hover:bg-primary/10 transition-all duration-200 hover:scale-110"
               title="Use current location"
             >
               {geoLoading ? (
-                <div className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full" />
+                <div className="spinner-enhanced w-3 h-3" />
               ) : (
                 <Navigation className="w-3 h-3" />
               )}
@@ -455,7 +390,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
               variant="ghost"
               size="sm"
               onClick={clearSearch}
-              className="h-8 w-8 p-0 hover:bg-destructive/10"
+              className="h-8 w-8 p-0 hover:bg-destructive/10 transition-all duration-200 hover:scale-110"
               title="Clear search"
             >
               <X className="w-3 h-3" />
@@ -464,37 +399,37 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
           
           {/* Loading Indicator */}
           {isLoading && (
-            <div className="flex items-center gap-1 px-2">
+            <div className="flex items-center gap-2 px-2">
               {retryCount > 0 && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400">
                   Retry {retryCount}
                 </Badge>
               )}
-              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+              <div className="spinner-enhanced w-4 h-4" />
             </div>
           )}
         </div>
       </div>
 
-      {/* Search Results */}
+      {/* Enhanced Search Results */}
       {showResults && (
         <Card 
           ref={resultsRef}
-          className="absolute top-full left-0 right-0 mt-2 z-50 bg-background/98 backdrop-blur-sm border-border/50 shadow-xl max-h-80 overflow-hidden"
+          className="absolute top-full left-0 right-0 mt-2 z-50 card-enhanced max-h-80 overflow-hidden shadow-floating"
         >
-          <div className="max-h-80 overflow-y-auto">
+          <div className="max-h-80 overflow-y-auto scrollbar-enhanced">
             {/* History Header */}
             {searchMode === 'history' && recentSearches.length > 0 && (
-              <div className="flex items-center justify-between p-3 border-b border-border/30">
+              <div className="flex items-center justify-between p-3 border-b border-border/30 bg-muted/20">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="w-4 h-4" />
-                  <span>Recent Searches</span>
+                  <span className="font-medium">Recent Searches</span>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={clearHistory}
-                  className="h-6 px-2 text-xs hover:bg-destructive/10"
+                  className="h-6 px-2 text-xs hover:bg-destructive/10 transition-all duration-200"
                 >
                   <Trash2 className="w-3 h-3 mr-1" />
                   Clear
@@ -514,14 +449,16 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
                       <div key={`history-${index}`} className="flex items-center">
                         <button
                           onClick={() => handleHistorySelect(historyItem)}
-                          className={`flex-1 text-left p-3 rounded-md transition-all duration-150 border-0 bg-transparent touch-manipulation ${
+                          className={`flex-1 text-left p-3 rounded-lg transition-all duration-200 border-0 bg-transparent touch-manipulation ${
                             isSelected 
-                              ? 'bg-primary/10 border-primary/20' 
-                              : 'hover:bg-muted/50'
+                              ? 'bg-primary/10 border border-primary/20 shadow-sm' 
+                              : 'hover:bg-muted/50 hover:shadow-sm'
                           }`}
                         >
                           <div className="flex items-start gap-3">
-                            <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                            <div className="p-1.5 rounded-lg bg-blue-500/20">
+                              <Clock className="w-4 h-4 text-blue-600" />
+                            </div>
                             <div className="flex-1 min-w-0">
                               <div className="text-sm font-medium text-foreground truncate">
                                 {historyItem.address}
@@ -536,7 +473,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
                           variant="ghost"
                           size="sm"
                           onClick={() => removeFromHistory(historyItem.address)}
-                          className="h-8 w-8 p-0 mr-2 hover:bg-destructive/10"
+                          className="h-8 w-8 p-0 mr-2 hover:bg-destructive/10 transition-all duration-200"
                         >
                           <X className="w-3 h-3" />
                         </Button>
@@ -548,14 +485,16 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
                       <button
                         key={`result-${index}`}
                         onClick={() => handleResultSelect(result)}
-                        className={`w-full text-left p-3 rounded-md transition-all duration-150 border-0 bg-transparent touch-manipulation ${
+                        className={`w-full text-left p-3 rounded-lg transition-all duration-200 border-0 bg-transparent touch-manipulation ${
                           isSelected 
-                            ? 'bg-primary/10 border-primary/20' 
-                            : 'hover:bg-muted/50'
+                            ? 'bg-primary/10 border border-primary/20 shadow-sm' 
+                            : 'hover:bg-muted/50 hover:shadow-sm'
                         }`}
                       >
                         <div className="flex items-start gap-3">
-                          {getResultIcon(result)}
+                          <div className="p-1.5 rounded-lg bg-muted/20">
+                            {getResultIcon(result)}
+                          </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium text-foreground truncate">
                               {formatAddress(result)}
@@ -564,7 +503,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
                               <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
                                 <span>{result.address.county}, {result.address.state || 'VA'}</span>
                                 {result.type && (
-                                  <Badge variant="secondary" className="text-xs px-1 py-0">
+                                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5 bg-muted/50">
                                     {result.type.replace('_', ' ')}
                                   </Badge>
                                 )}
@@ -577,27 +516,30 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
                   }
                 })
               ) : (
-                <div className="p-4 text-center">
+                <div className="p-6 text-center">
                   {searchMode === 'search' && query.length >= 2 ? (
                     <div className="text-sm text-muted-foreground">
-                      <MapPin className="w-5 h-5 mx-auto mb-2 opacity-50" />
-                      No addresses found. Try searching for a different location.
+                      <MapPin className="w-8 h-8 mx-auto mb-3 opacity-50" />
+                      <p className="font-medium mb-1">No addresses found</p>
+                      <p className="text-xs">Try searching for a different location</p>
                       {retryCount > 0 && (
-                        <div className="mt-2 flex items-center justify-center gap-1">
+                        <div className="mt-3 flex items-center justify-center gap-2 text-xs text-yellow-600">
                           <RotateCcw className="w-3 h-3" />
-                          <span className="text-xs">Retried {retryCount} time(s)</span>
+                          <span>Retried {retryCount} time(s)</span>
                         </div>
                       )}
                     </div>
                   ) : searchMode === 'history' && query.length > 0 ? (
                     <div className="text-sm text-muted-foreground">
-                      <Clock className="w-5 h-5 mx-auto mb-2 opacity-50" />
-                      No matching searches in history.
+                      <Clock className="w-8 h-8 mx-auto mb-3 opacity-50" />
+                      <p className="font-medium mb-1">No matching searches</p>
+                      <p className="text-xs">No matching searches in history</p>
                     </div>
                   ) : (
                     <div className="text-sm text-muted-foreground">
-                      <Search className="w-5 h-5 mx-auto mb-2 opacity-50" />
-                      Start typing to search for addresses...
+                      <Search className="w-8 h-8 mx-auto mb-3 opacity-50" />
+                      <p className="font-medium mb-1">Start searching</p>
+                      <p className="text-xs">Type to search for addresses, places, or coordinates</p>
                     </div>
                   )}
                 </div>

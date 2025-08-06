@@ -4,6 +4,7 @@
 
 /* Professional GIS Application Design System 
 All colors MUST be HSL for consistent theming.
+Enhanced with striking visual appeal and modern UX patterns.
 */
 
 @layer base {
@@ -38,7 +39,7 @@ All colors MUST be HSL for consistent theming.
 
     --radius: 0.375rem;
 
-    /* GIS Application specific colors */
+    /* Enhanced GIS Application specific colors */
     --gis-toolbar: 220 13% 18%;
     --gis-panel: 220 13% 19%;
     --gis-measure: 42 96% 50%;
@@ -48,34 +49,48 @@ All colors MUST be HSL for consistent theming.
     --gis-warning: 42 96% 50%;
     --gis-error: 0 84.2% 60.2%;
 
-    /* Gradients */
+    /* New Enhanced Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(142 76% 28%));
     --gradient-toolbar: linear-gradient(180deg, hsl(var(--gis-toolbar)), hsl(220 13% 16%));
     --gradient-panel: linear-gradient(135deg, hsl(var(--gis-panel)), hsl(220 13% 17%));
+    --gradient-glow: linear-gradient(135deg, hsl(142 76% 36% / 0.1), hsl(200 98% 55% / 0.1));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 28%));
+    --gradient-warning: linear-gradient(135deg, hsl(42 96% 50%), hsl(42 96% 40%));
+    --gradient-error: linear-gradient(135deg, hsl(0 84.2% 60.2%), hsl(0 84.2% 50%));
 
-    /* Shadows */
+    /* Enhanced Shadows */
     --shadow-toolbar: 0 4px 12px 0 hsl(220 13% 8% / 0.4);
     --shadow-panel: 0 2px 8px 0 hsl(220 13% 8% / 0.3);
     --shadow-floating: 0 8px 32px 0 hsl(220 13% 8% / 0.5);
+    --shadow-glow: 0 0 20px 0 hsl(142 76% 36% / 0.3);
+    --shadow-success: 0 0 12px 0 hsl(142 76% 36% / 0.4);
+    --shadow-warning: 0 0 12px 0 hsl(42 96% 50% / 0.4);
+    --shadow-error: 0 0 12px 0 hsl(0 84.2% 60.2% / 0.4);
 
-    /* Animations */
+    /* Enhanced Animations */
     --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-fast: all 0.15s ease-out;
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* New Visual Effects */
+    --backdrop-blur-light: blur(8px);
+    --backdrop-blur-medium: blur(12px);
+    --backdrop-blur-heavy: blur(16px);
+
+    /* Enhanced Border Radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-2xl: 1rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -228,6 +243,205 @@ All colors MUST be HSL for consistent theming.
     .text-muted-foreground {
       color: hsl(215 20.2% 70%);
     }
+  }
+}
+
+/* Enhanced Component Styles */
+@layer components {
+  /* Enhanced Card Styles */
+  .card-enhanced {
+    @apply bg-card/95 backdrop-blur-md border border-border/50 shadow-panel;
+    transition: var(--transition-smooth);
+  }
+
+  .card-enhanced:hover {
+    @apply shadow-floating;
+    transform: translateY(-1px);
+  }
+
+  /* Enhanced Button Styles */
+  .btn-primary-enhanced {
+    @apply bg-gradient-to-r from-primary to-primary/80 text-primary-foreground;
+    @apply shadow-success hover:shadow-glow;
+    transition: var(--transition-bounce);
+  }
+
+  .btn-primary-enhanced:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .btn-secondary-enhanced {
+    @apply bg-secondary/80 backdrop-blur-sm border border-border/50;
+    @apply hover:bg-secondary/90 hover:shadow-panel;
+    transition: var(--transition-smooth);
+  }
+
+  /* Enhanced Panel Styles */
+  .panel-enhanced {
+    @apply bg-gis-panel/95 backdrop-blur-md border border-border/50 shadow-panel;
+    @apply hover:shadow-floating;
+    transition: var(--transition-smooth);
+  }
+
+  /* Enhanced Toolbar Styles */
+  .toolbar-enhanced {
+    @apply bg-gis-toolbar/95 backdrop-blur-md border-b border-border/20;
+    @apply shadow-toolbar;
+  }
+
+  /* Enhanced Menu Styles */
+  .menu-enhanced {
+    @apply bg-popover/95 backdrop-blur-md border border-border/50;
+    @apply shadow-floating;
+    animation: slideIn 0.2s ease-out;
+  }
+
+  /* Enhanced Badge Styles */
+  .badge-enhanced {
+    @apply bg-gradient-to-r from-primary/20 to-primary/10;
+    @apply border border-primary/30 text-primary-foreground;
+    @apply shadow-sm;
+  }
+
+  /* Enhanced Input Styles */
+  .input-enhanced {
+    @apply bg-background/20 backdrop-blur-sm border border-border/50;
+    @apply focus:border-primary/50 focus:ring-2 focus:ring-primary/20;
+    @apply transition-all duration-200;
+  }
+
+  /* Enhanced Select Styles */
+  .select-enhanced {
+    @apply bg-background/20 backdrop-blur-sm border border-border/50;
+    @apply hover:bg-background/30 focus:border-primary/50;
+    @apply transition-all duration-200;
+  }
+
+  /* Enhanced Sheet/Drawer Styles */
+  .sheet-enhanced {
+    @apply bg-background/95 backdrop-blur-md border border-border/50;
+    @apply shadow-floating;
+  }
+
+  /* Enhanced Loading Spinner */
+  .spinner-enhanced {
+    @apply w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full;
+    animation: spin 1s linear infinite;
+  }
+
+  /* Enhanced Pulse Animation */
+  .pulse-enhanced {
+    animation: pulse-enhanced 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Enhanced Glow Effects */
+  .glow-primary {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+  }
+
+  .glow-success {
+    box-shadow: 0 0 20px hsl(var(--gis-success) / 0.3);
+  }
+
+  .glow-warning {
+    box-shadow: 0 0 20px hsl(var(--gis-warning) / 0.3);
+  }
+
+  .glow-error {
+    box-shadow: 0 0 20px hsl(var(--gis-error) / 0.3);
+  }
+
+  /* Enhanced Close Button */
+  .close-btn-enhanced {
+    @apply w-8 h-8 rounded-full bg-background/20 backdrop-blur-sm;
+    @apply border border-border/50 hover:bg-background/30;
+    @apply flex items-center justify-center transition-all duration-200;
+    @apply hover:scale-110 hover:shadow-sm;
+  }
+
+  /* Enhanced Tooltip */
+  .tooltip-enhanced {
+    @apply bg-popover/95 backdrop-blur-md border border-border/50;
+    @apply shadow-floating text-popover-foreground;
+    @apply px-3 py-2 rounded-lg text-sm;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  /* Enhanced Scrollbar */
+  .scrollbar-enhanced {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-enhanced::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scrollbar-enhanced::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-enhanced::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  .scrollbar-enhanced::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+/* Enhanced Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse-enhanced {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 

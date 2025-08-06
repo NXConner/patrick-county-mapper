@@ -5,6 +5,24 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { 
+  Search, 
+  MapPin, 
+  User, 
+  Home, 
+  DollarSign, 
+  Building2, 
+  FileText, 
+  Download, 
+  Share2, 
+  X, 
+  Info,
+  Database,
+  Globe,
+  Settings,
+  BarChart3,
+  Layers
+} from 'lucide-react';
 
 interface PropertyInfo {
   parcelId?: string;
@@ -23,147 +41,293 @@ interface PropertyPanelProps {
 
 const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propertyInfo }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'search' | 'details' | 'sources' | 'actions'>('search');
 
   const handleSearch = () => {
     // Integrated with real Patrick County property database
     console.log('Searching for:', searchTerm);
   };
 
-  // Panel content component to reuse in both mobile and desktop versions
+  // Enhanced Panel content component
   const PanelContent = () => (
-    <div className="space-y-4">
-      {/* Search */}
-      <div className="space-y-3">
-        <div className="flex gap-2">
-          <Input
-            placeholder="Enter address or parcel ID"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="bg-background/20 border-border/50 text-base" // Ensure 16px min size
-          />
-          <Button onClick={handleSearch} size="sm" variant="secondary" className="px-4 h-11 touch-manipulation">
-            Search
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Search Patrick County GIS database for property details
-        </p>
+    <div className="space-y-6">
+      {/* Header with Close Button */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+          <Building2 className="w-5 h-5" />
+          Property Information
+        </h2>
+        <Button
+          onClick={onToggle}
+          variant="ghost"
+          size="sm"
+          className="close-btn-enhanced"
+        >
+          <X className="w-4 h-4" />
+        </Button>
       </div>
 
-      <Separator className="bg-border/50" />
+      {/* Navigation Tabs */}
+      <div className="flex space-x-1 bg-muted/20 rounded-lg p-1">
+        {[
+          { id: 'search', label: 'Search', icon: <Search className="w-4 h-4" /> },
+          { id: 'details', label: 'Details', icon: <Info className="w-4 h-4" /> },
+          { id: 'sources', label: 'Sources', icon: <Database className="w-4 h-4" /> },
+          { id: 'actions', label: 'Actions', icon: <Settings className="w-4 h-4" /> }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+              activeTab === tab.id
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+          >
+            {tab.icon}
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
+      </div>
 
-      {/* Property Details */}
-      {propertyInfo ? (
+      {/* Search Tab */}
+      {activeTab === 'search' && (
         <div className="space-y-4">
-          <h3 className="text-base font-semibold text-foreground">Selected Property</h3>
-          
           <div className="space-y-3">
-            {propertyInfo.parcelId && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Parcel ID:</span>
-                <Badge variant="outline" className="text-sm">{propertyInfo.parcelId}</Badge>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Enter address or parcel ID"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="input-enhanced pl-10 h-11 text-base"
+                />
               </div>
-            )}
-            
-            {propertyInfo.owner && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Owner:</span>
-                <span className="text-sm text-foreground">{propertyInfo.owner}</span>
-              </div>
-            )}
-            
-            {propertyInfo.address && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Address:</span>
-                <span className="text-sm text-foreground">{propertyInfo.address}</span>
-              </div>
-            )}
-            
-            {propertyInfo.acreage && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Acreage:</span>
-                <span className="text-sm text-foreground">{propertyInfo.acreage.toFixed(2)} acres</span>
-              </div>
-            )}
-            
-            {propertyInfo.taxValue && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Tax Value:</span>
-                <span className="text-sm text-foreground">${propertyInfo.taxValue.toLocaleString()}</span>
-              </div>
-            )}
-            
-            {propertyInfo.zoning && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Zoning:</span>
-                <Badge variant="secondary">{propertyInfo.zoning}</Badge>
-              </div>
-            )}
+              <Button 
+                onClick={handleSearch} 
+                size="sm" 
+                className="btn-primary-enhanced px-4 h-11"
+              >
+                Search
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Search Patrick County GIS database for property details
+            </p>
           </div>
-        </div>
-      ) : (
-        <div className="text-center py-8">
-          <div className="text-muted-foreground mb-2">
-            <svg className="w-12 h-12 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
+
+          {/* Quick Search Options */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">Quick Search</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" size="sm" className="h-10 text-xs">
+                <MapPin className="w-4 h-4 mr-2" />
+                By Address
+              </Button>
+              <Button variant="outline" size="sm" className="h-10 text-xs">
+                <FileText className="w-4 h-4 mr-2" />
+                By Parcel ID
+              </Button>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Click on a property or search to view details
-          </p>
         </div>
       )}
 
-      <Separator className="bg-border/50" />
+      {/* Details Tab */}
+      {activeTab === 'details' && (
+        <div className="space-y-4">
+          {propertyInfo ? (
+            <div className="space-y-4">
+              <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Selected Property
+              </h3>
+              
+              <div className="space-y-3">
+                {propertyInfo.parcelId && (
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-muted/20">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Parcel ID:</span>
+                    </div>
+                    <Badge variant="outline" className="text-sm">{propertyInfo.parcelId}</Badge>
+                  </div>
+                )}
+                
+                {propertyInfo.owner && (
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-muted/20">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Owner:</span>
+                    </div>
+                    <span className="text-sm text-foreground font-medium">{propertyInfo.owner}</span>
+                  </div>
+                )}
+                
+                {propertyInfo.address && (
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-muted/20">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Address:</span>
+                    </div>
+                    <span className="text-sm text-foreground font-medium">{propertyInfo.address}</span>
+                  </div>
+                )}
+                
+                {propertyInfo.acreage && (
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-muted/20">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Acreage:</span>
+                    </div>
+                    <span className="text-sm text-foreground font-medium">{propertyInfo.acreage.toFixed(2)} acres</span>
+                  </div>
+                )}
+                
+                {propertyInfo.taxValue && (
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-muted/20">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Tax Value:</span>
+                    </div>
+                    <span className="text-sm text-foreground font-medium">${propertyInfo.taxValue.toLocaleString()}</span>
+                  </div>
+                )}
+                
+                {propertyInfo.zoning && (
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-muted/20">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Zoning:</span>
+                    </div>
+                    <Badge variant="secondary" className="text-sm">{propertyInfo.zoning}</Badge>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-muted-foreground mb-4">
+                <Building2 className="w-16 h-16 mx-auto mb-3 opacity-50" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">No Property Selected</h3>
+              <p className="text-sm text-muted-foreground">
+                Click on a property or search to view details
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
-      {/* GIS Data Sources */}
-      <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Data Sources</h3>
-        <div className="space-y-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-primary rounded-full"></div>
-            Patrick County GIS
+      {/* Sources Tab */}
+      {activeTab === 'sources' && (
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-foreground">Data Sources</h4>
+          <div className="space-y-3">
+            <div className="p-3 rounded-lg bg-muted/20 border border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-primary rounded-full"></div>
+                <span className="font-medium text-foreground">Patrick County GIS</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Primary property and parcel data</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/20 border border-secondary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-secondary rounded-full"></div>
+                <span className="font-medium text-foreground">NC Stokes County GIS</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Cross-border property information</p>
+            </div>
+            <div className="p-3 rounded-lg bg-muted/20 border border-accent/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-accent rounded-full"></div>
+                <span className="font-medium text-foreground">NC Surry County GIS</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Regional property boundaries</p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-secondary rounded-full"></div>
-            NC Stokes County GIS
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-accent rounded-full"></div>
-            NC Surry County GIS
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">Data Quality</h4>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Update Frequency:</span>
+                <span className="font-medium text-foreground">Monthly</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Accuracy:</span>
+                <span className="font-medium text-foreground">±3 feet</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Coverage:</span>
+                <span className="font-medium text-foreground">100%</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Export Options */}
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" className="flex-1 h-11 touch-manipulation">
-          Export PDF
-        </Button>
-        <Button variant="outline" size="sm" className="flex-1 h-11 touch-manipulation">
-          Save Data
-        </Button>
-      </div>
+      {/* Actions Tab */}
+      {activeTab === 'actions' && (
+        <div className="space-y-4">
+          <h4 className="text-sm font-semibold text-foreground">Export Options</h4>
+          <div className="grid grid-cols-2 gap-3">
+            <Button variant="outline" size="sm" className="h-12 flex flex-col gap-1">
+              <Download className="w-4 h-4" />
+              <span className="text-xs">Export PDF</span>
+            </Button>
+            <Button variant="outline" size="sm" className="h-12 flex flex-col gap-1">
+              <FileText className="w-4 h-4" />
+              <span className="text-xs">Save Data</span>
+            </Button>
+            <Button variant="outline" size="sm" className="h-12 flex flex-col gap-1">
+              <Share2 className="w-4 h-4" />
+              <span className="text-xs">Share Link</span>
+            </Button>
+            <Button variant="outline" size="sm" className="h-12 flex flex-col gap-1">
+              <BarChart3 className="w-4 h-4" />
+              <span className="text-xs">Analytics</span>
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">Quick Actions</h4>
+            <div className="space-y-2">
+              <Button variant="secondary" size="sm" className="w-full h-10">
+                <Layers className="w-4 h-4 mr-2" />
+                View Property Lines
+              </Button>
+              <Button variant="secondary" size="sm" className="w-full h-10">
+                <MapPin className="w-4 h-4 mr-2" />
+                Center on Map
+              </Button>
+              <Button variant="secondary" size="sm" className="w-full h-10">
+                <Info className="w-4 h-4 mr-2" />
+                Property History
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
-  // Trigger button for both mobile and desktop
+  // Enhanced Trigger button
   const TriggerButton = () => (
     <Button
       onClick={onToggle}
-      className="bg-gis-panel hover:bg-gis-toolbar shadow-panel h-11 touch-manipulation"
+      className="btn-secondary-enhanced shadow-panel h-11 hover:shadow-floating"
       size="sm"
     >
-      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
+      <Building2 className="w-4 h-4 mr-2" />
       Property Info
     </Button>
   );
 
   return (
     <>
-      {/* Mobile: Bottom Sheet */}
+      {/* Mobile: Enhanced Bottom Sheet */}
       <div className="sm:hidden">
         {!isOpen ? (
           <div className="fixed bottom-4 right-4 z-50">
@@ -171,10 +335,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
           </div>
         ) : (
           <Sheet open={isOpen} onOpenChange={(open) => !open && onToggle()}>
-            <SheetContent side="bottom" className="bg-gis-panel/95 backdrop-blur-sm border-border/50 max-h-[80vh] overflow-y-auto">
-              <SheetHeader>
-                <SheetTitle className="text-foreground">Property Information</SheetTitle>
-              </SheetHeader>
+            <SheetContent side="bottom" className="sheet-enhanced max-h-[85vh] overflow-y-auto scrollbar-enhanced">
               <div className="mt-6">
                 <PanelContent />
               </div>
@@ -183,29 +344,15 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
         )}
       </div>
 
-      {/* Desktop: Fixed Card */}
+      {/* Desktop: Enhanced Fixed Card */}
       <div className="hidden sm:block">
         {!isOpen ? (
           <div className="absolute top-4 right-4 z-50">
             <TriggerButton />
           </div>
         ) : (
-          <Card className="absolute top-4 right-4 w-80 lg:w-96 bg-gis-panel/95 backdrop-blur-sm border-border/50 shadow-panel z-50">
+          <Card className="absolute top-4 right-4 w-80 lg:w-96 card-enhanced z-50">
             <div className="p-4">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-foreground">Property Information</h2>
-                <Button
-                  onClick={onToggle}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 hover:bg-background/20"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </Button>
-              </div>
               <PanelContent />
             </div>
           </Card>
