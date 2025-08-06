@@ -15,37 +15,9 @@ const Index = () => {
   };
 
   return (
-    <div className="h-screen w-full relative overflow-hidden bg-gis-satellite">
-      {/* Main Map Container */}
-      <FreeMapContainer 
-        onMeasurement={handleMeasurement}
-        activeTool={activeTool}
-        mapService={selectedMapService}
-      />
-      
-      {/* Measurement Toolbar */}
-      <MeasurementToolbar
-        activeTool={activeTool}
-        onToolChange={setActiveTool}
-        currentMeasurement={currentMeasurement}
-      />
-      
-      {/* Property Information Panel */}
-      <PropertyPanel
-        isOpen={propertyPanelOpen}
-        onToggle={() => setPropertyPanelOpen(!propertyPanelOpen)}
-        propertyInfo={{
-          parcelId: "Sample-123",
-          owner: "John Doe",
-          address: "123 Main St, Stuart, VA",
-          acreage: 2.5,
-          taxValue: 150000,
-          zoning: "Residential"
-        }}
-      />
-      
+    <div className="h-screen w-full flex flex-col bg-gis-satellite">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 bg-gradient-toolbar backdrop-blur-sm border-b border-border/20 z-10">
+      <div className="bg-gradient-toolbar backdrop-blur-sm border-b border-border/20 z-10 flex-shrink-0">
         <div className="px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
@@ -77,6 +49,37 @@ const Index = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 relative overflow-hidden">
+        {/* Main Map Container */}
+        <FreeMapContainer 
+          onMeasurement={handleMeasurement}
+          activeTool={activeTool}
+          mapService={selectedMapService}
+        />
+        
+        {/* Measurement Toolbar */}
+        <MeasurementToolbar
+          activeTool={activeTool}
+          onToolChange={setActiveTool}
+          currentMeasurement={currentMeasurement}
+        />
+        
+        {/* Property Information Panel */}
+        <PropertyPanel
+          isOpen={propertyPanelOpen}
+          onToggle={() => setPropertyPanelOpen(!propertyPanelOpen)}
+          propertyInfo={{
+            parcelId: "Sample-123",
+            owner: "John Doe",
+            address: "123 Main St, Stuart, VA",
+            acreage: 2.5,
+            taxValue: 150000,
+            zoning: "Residential"
+          }}
+        />
       </div>
     </div>
   );

@@ -188,7 +188,7 @@ const FreeMapContainer: React.FC<FreeMapContainerProps> = ({
 
   return (
     <div className="relative w-full h-full">
-      <div ref={mapContainer} className="absolute inset-0" />
+      <div ref={mapContainer} className="w-full h-full" />
       
       {/* Floating action buttons */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-2">
