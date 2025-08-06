@@ -22,3 +22,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Android SDK and build files
+android-sdk/
+commandlinetools-*.zip
+*.apk
+
+# Capacitor
+android/app/build/
+android/build/
+ios/App/build/
+
+# Local properties
+android/local.properties

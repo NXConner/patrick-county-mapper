@@ -28,7 +28,7 @@ interface FreeMapContainerProps {
 const FreeMapContainer: React.FC<FreeMapContainerProps> = ({ 
   onMeasurement, 
   activeTool,
-  mapService = 'leaflet-osm'
+  mapService = 'esri-satellite'
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -42,20 +42,25 @@ const FreeMapContainer: React.FC<FreeMapContainerProps> = ({
   // Map tile providers
   const getTileLayer = (serviceId: string): L.TileLayer => {
     const providers: Record<string, { url: string; attribution: string; maxZoom?: number }> = {
+      'esri-satellite': {
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: '© Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+        maxZoom: 20
+      },
       'leaflet-osm': {
         url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         attribution: '© OpenStreetMap contributors',
         maxZoom: 19
       },
       'maplibre': {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: '© Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+        maxZoom: 20
       },
       'openlayers': {
-        url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        attribution: '© OpenStreetMap contributors', 
-        maxZoom: 19
+        url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        attribution: '© Esri, Maxar, Earthstar Geographics, and the GIS User Community',
+        maxZoom: 20
       },
       'locationiq': {
         url: 'https://tiles.locationiq.com/v3/streets/r/{z}/{x}/{y}.png?key=YOUR_LOCATIONIQ_KEY',
@@ -71,10 +76,20 @@ const FreeMapContainer: React.FC<FreeMapContainerProps> = ({
         url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
         attribution: '© CARTO, © OpenStreetMap contributors',
         maxZoom: 18
+      },
+      'google-satellite': {
+        url: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+        attribution: '© Google',
+        maxZoom: 20
+      },
+      'bing-satellite': {
+        url: 'https://ecn.t3.tiles.virtualearth.net/tiles/a{q}.jpeg?g=1',
+        attribution: '© Microsoft Bing',
+        maxZoom: 19
       }
     };
 
-    const provider = providers[serviceId] || providers['leaflet-osm'];
+    const provider = providers[serviceId] || providers['esri-satellite'];
     
     return L.tileLayer(provider.url, {
       attribution: provider.attribution,
@@ -115,7 +130,7 @@ const FreeMapContainer: React.FC<FreeMapContainerProps> = ({
     map.current.setMaxBounds(bounds);
 
     setMapLoaded(true);
-    toast.success(`Map loaded with ${mapService === 'leaflet-osm' ? 'OpenStreetMap' : mapService}! Focused on Patrick County, VA region`);
+    toast.success(`Map loaded with ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}! Focused on Patrick County, VA region`);
 
     return () => {
       if (map.current) {
@@ -137,7 +152,7 @@ const FreeMapContainer: React.FC<FreeMapContainerProps> = ({
     newLayer.addTo(map.current);
     setCurrentLayer(newLayer);
 
-    toast.success(`Switched to ${mapService === 'leaflet-osm' ? 'OpenStreetMap' : mapService}`);
+    toast.success(`Switched to ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}`);
   }, [mapService, mapLoaded]);
 
   const clearDrawings = () => {
@@ -188,44 +203,44 @@ const FreeMapContainer: React.FC<FreeMapContainerProps> = ({
 
   return (
     <div className="relative w-full h-full">
-      <div ref={mapContainer} className="w-full h-full" />
+      <div ref={mapContainer} className="w-full h-full z-10" />
       
       {/* Floating action buttons */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+      <div className="absolute bottom-4 right-4 z-40 flex flex-col gap-2">
         <button
           onClick={clearDrawings}
-          className="bg-gis-toolbar hover:bg-gis-panel text-foreground p-2 rounded-lg shadow-floating transition-fast"
+          className="bg-gis-toolbar hover:bg-gis-panel text-foreground p-2 sm:p-3 rounded-lg shadow-floating transition-fast"
           title="Clear all drawings"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
         </button>
         
         <button
           onClick={exportData}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground p-2 rounded-lg shadow-floating transition-fast"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground p-2 sm:p-3 rounded-lg shadow-floating transition-fast"
           title="Export measurements"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
         </button>
       </div>
 
       {/* Service info overlay */}
-      <div className="absolute top-4 left-4 bg-gis-panel/90 backdrop-blur-sm p-3 rounded-lg shadow-panel max-w-xs">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-          <span className="text-sm font-medium text-foreground">
-            {mapService === 'leaflet-osm' ? 'OpenStreetMap' : mapService}
+      <div className="absolute top-4 right-4 z-30 bg-gis-panel/90 backdrop-blur-sm p-2 sm:p-3 rounded-lg shadow-panel max-w-[180px] sm:max-w-xs">
+        <div className="flex items-center gap-1 sm:gap-2 mb-1">
+          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full"></div>
+          <span className="text-[10px] sm:text-xs font-medium text-foreground">
+            {mapService === 'esri-satellite' ? 'ESRI Satellite' : mapService === 'leaflet-osm' ? 'OpenStreetMap' : mapService}
           </span>
-          <span className="text-xs text-green-600 font-medium px-1.5 py-0.5 bg-green-100 rounded">
+          <span className="text-[8px] sm:text-[10px] text-green-600 font-medium px-1 py-0.5 bg-green-100 rounded">
             FREE
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">
-          No API key required • Open source mapping
+        <p className="text-[8px] sm:text-[10px] text-muted-foreground">
+          {mapService === 'esri-satellite' ? 'High-res satellite imagery' : 'Open source mapping'}
         </p>
       </div>
     </div>

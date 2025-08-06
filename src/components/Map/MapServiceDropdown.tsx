@@ -18,12 +18,44 @@ export interface MapService {
 
 export const mapServices: MapService[] = [
   {
+    id: 'esri-satellite',
+    name: 'ESRI World Imagery',
+    description: 'High-resolution satellite imagery (FREE)',
+    cost: 'Free',
+    url: 'https://www.esri.com',
+    features: [
+      '✓ High-resolution satellite imagery',
+      '✓ Global coverage',
+      '✓ No API key required',
+      '✓ Up to zoom level 20',
+      '✓ Recent imagery updates'
+    ]
+  },
+  {
+    id: 'google-satellite',
+    name: 'Google Satellite',
+    description: 'Google satellite imagery (FREE)',
+    cost: 'Free',
+    url: 'https://maps.google.com',
+    features: [
+      '✓ High-resolution satellite imagery',
+      '✓ Global coverage',
+      '✓ No API key required',
+      '✓ Up to zoom level 20'
+    ]
+  },
+  {
     id: 'leaflet-osm',
-    name: 'Leaflet + OpenStreetMap',
-    description: 'Open source mapping library with OSM tiles',
-    type: 'free',
+    name: 'OpenStreetMap',
+    description: 'Open source street map tiles',
+    cost: 'Free',
     url: 'https://www.openstreetmap.org',
-    apiKey: false
+    features: [
+      '✓ Open source mapping',
+      '✓ Community-driven data',
+      '✓ No API key required',
+      '✓ Street-level detail'
+    ]
   },
   {
     id: 'qgis',

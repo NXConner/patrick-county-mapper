@@ -83,23 +83,23 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   ];
 
   return (
-    <Card className="absolute top-4 left-4 bg-gis-toolbar/95 backdrop-blur-sm border-border/50 shadow-toolbar">
-      <div className="p-4 space-y-4">
+    <Card className="absolute top-16 sm:top-4 left-4 z-50 bg-gis-toolbar/95 backdrop-blur-sm border-border/50 shadow-toolbar max-w-[280px] sm:max-w-[320px]">
+      <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
         {/* Tools Section */}
         <div>
           <h3 className="text-sm font-semibold text-foreground mb-2">Measurement Tools</h3>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
             {tools.map((tool) => (
               <Button
                 key={tool.id}
                 variant={activeTool === tool.id ? "default" : "secondary"}
                 size="sm"
                 onClick={() => onToolChange(tool.id)}
-                className="h-auto p-2 flex flex-col items-center gap-1 transition-fast"
+                className="h-auto p-1.5 sm:p-2 flex flex-col items-center gap-1 transition-fast text-xs"
                 title={tool.description}
               >
                 {tool.icon}
-                <span className="text-xs">{tool.name}</span>
+                <span className="text-[10px] sm:text-xs">{tool.name}</span>
               </Button>
             ))}
           </div>
