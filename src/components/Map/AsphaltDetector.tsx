@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Zap, Square, AlertTriangle, Eye, BarChart3 } from 'lucide-react';
+import { Loader2, Zap, Square, AlertTriangle, Eye, BarChart3, X, Minimize2, Maximize2 } from 'lucide-react';
 import { toast } from 'sonner';
 import L from 'leaflet';
 import ComputerVisionService, { AsphaltRegion } from './ComputerVisionService';
@@ -10,12 +10,14 @@ import ComputerVisionService, { AsphaltRegion } from './ComputerVisionService';
 interface AsphaltDetectorProps {
   map: L.Map | null;
   onDetectionComplete?: (results: AsphaltRegion[]) => void;
+  onClose?: () => void;
 }
 
-const AsphaltDetector: React.FC<AsphaltDetectorProps> = ({ map, onDetectionComplete }) => {
+const AsphaltDetector: React.FC<AsphaltDetectorProps> = ({ map, onDetectionComplete, onClose }) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionProgress, setDetectionProgress] = useState(0);
   const [detectionResults, setDetectionResults] = useState<AsphaltRegion[]>([]);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [analysisStats, setAnalysisStats] = useState<{
     totalArea: number;
     processingTime: number;
@@ -153,112 +155,142 @@ const AsphaltDetector: React.FC<AsphaltDetectorProps> = ({ map, onDetectionCompl
   return (
     <Card className="absolute top-20 right-4 z-40 bg-background/95 backdrop-blur-sm border-border/50 shadow-lg max-w-[300px]">
       <div className="p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <Eye className="w-4 h-4 text-blue-600" />
-          <h3 className="text-sm font-semibold">AI Asphalt Detection</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-blue-600" />
+            <h3 className="text-sm font-semibold">AI Asphalt Detection</h3>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 hover:bg-muted"
+              onClick={() => setIsMinimized(!isMinimized)}
+              title={isMinimized ? "Expand" : "Minimize"}
+            >
+              {isMinimized ? (
+                <Maximize2 className="w-3 h-3" />
+              ) : (
+                <Minimize2 className="w-3 h-3" />
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
+              onClick={onClose}
+              title="Close"
+            >
+              <X className="w-3 h-3" />
+            </Button>
+          </div>
         </div>
         
-        <p className="text-xs text-muted-foreground">
-          Computer vision analysis of satellite imagery to automatically detect and measure asphalt surfaces
-        </p>
+        {!isMinimized && (
+          <>
+            <p className="text-xs text-muted-foreground">
+              Computer vision analysis of satellite imagery to automatically detect and measure asphalt surfaces
+            </p>
 
-        {isDetecting && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs">
-              <Loader2 className="w-3 h-3 animate-spin" />
-              <span>Processing satellite imagery...</span>
-            </div>
-            <Progress value={detectionProgress} className="h-2" />
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <Button
-            onClick={runAsphaltDetection}
-            disabled={isDetecting}
-            className="w-full"
-            size="sm"
-          >
-            {isDetecting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <Zap className="w-4 h-4 mr-2" />
-                Run AI Detection
-              </>
+            {isDetecting && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Processing satellite imagery...</span>
+                </div>
+                <Progress value={detectionProgress} className="h-2" />
+              </div>
             )}
-          </Button>
 
-          {detectionResults.length > 0 && (
-            <Button
-              onClick={clearDetections}
-              variant="outline"
-              size="sm"
-              className="w-full"
-            >
-              Clear Results
-            </Button>
-          )}
-        </div>
+            <div className="space-y-2">
+              <Button
+                onClick={runAsphaltDetection}
+                disabled={isDetecting}
+                className="w-full"
+                size="sm"
+              >
+                {isDetecting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    Run AI Detection
+                  </>
+                )}
+              </Button>
 
-        {analysisStats && (
-          <div className="space-y-2 bg-muted/30 p-3 rounded">
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="w-4 h-4 text-green-600" />
-              <h4 className="text-xs font-medium">Analysis Results</h4>
+              {detectionResults.length > 0 && (
+                <Button
+                  onClick={clearDetections}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  Clear Results
+                </Button>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <div className="text-muted-foreground">Surfaces Found</div>
-                <div className="font-medium">{detectionResults.length}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Total Area</div>
-                <div className="font-medium">{analysisStats.totalArea.toFixed(0)} sq ft</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Avg Confidence</div>
-                <div className="font-medium">{(analysisStats.confidence * 100).toFixed(1)}%</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Process Time</div>
-                <div className="font-medium">{analysisStats.processingTime}ms</div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {detectionResults.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="text-xs font-medium">Detected Surfaces:</h4>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {detectionResults.map((surface, index) => (
-                <div key={index} className="text-xs p-2 bg-muted/50 rounded">
-                  <div className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: getAsphaltColor(surface.surfaceType) }}
-                    />
-                    <div className="font-medium">{surface.surfaceType.replace('_', ' ')}</div>
+            {analysisStats && (
+              <div className="space-y-2 bg-muted/30 p-3 rounded">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="w-4 h-4 text-green-600" />
+                  <h4 className="text-xs font-medium">Analysis Results</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <div className="text-muted-foreground">Surfaces Found</div>
+                    <div className="font-medium">{detectionResults.length}</div>
                   </div>
-                  <div className="mt-1 text-muted-foreground">
-                    {surface.area.toFixed(0)} sq ft • {(surface.confidence * 100).toFixed(0)}% confidence
+                  <div>
+                    <div className="text-muted-foreground">Total Area</div>
+                    <div className="font-medium">{analysisStats.totalArea.toFixed(0)} sq ft</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Avg Confidence</div>
+                    <div className="font-medium">{(analysisStats.confidence * 100).toFixed(1)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Process Time</div>
+                    <div className="font-medium">{analysisStats.processingTime}ms</div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 p-2 rounded">
-          <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-          <div>
-            AI detection uses computer vision analysis. Results are estimates - verify measurements for critical applications.
-          </div>
-        </div>
+            {detectionResults.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-xs font-medium">Detected Surfaces:</h4>
+                <div className="space-y-1 max-h-32 overflow-y-auto">
+                  {detectionResults.map((surface, index) => (
+                    <div key={index} className="text-xs p-2 bg-muted/50 rounded">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full" 
+                          style={{ backgroundColor: getAsphaltColor(surface.surfaceType) }}
+                        />
+                        <div className="font-medium">{surface.surfaceType.replace('_', ' ')}</div>
+                      </div>
+                      <div className="mt-1 text-muted-foreground">
+                        {surface.area.toFixed(0)} sq ft • {(surface.confidence * 100).toFixed(0)}% confidence
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 p-2 rounded">
+              <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+              <div>
+                AI detection uses computer vision analysis. Results are estimates - verify measurements for critical applications.
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </Card>
   );

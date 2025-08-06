@@ -195,6 +195,7 @@ const Index = () => {
                   }
                 });
               }}
+              onClose={() => setShowAsphaltDetector(false)}
             />
           )}
 
