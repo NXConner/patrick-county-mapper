@@ -28,6 +28,7 @@ interface FreeMapContainerProps {
   layerStates?: any;
   onLayerToggle?: (layerId: string) => void;
   onPropertySelect?: (property: any) => void;
+  gpsLocation?: { latitude: number; longitude: number } | null;
 }
 
 interface FreeMapContainerRef {
@@ -35,13 +36,15 @@ interface FreeMapContainerRef {
   toggleLayer: (layerId: string) => void;
   getLayerStates: () => { satellite: boolean; roads: boolean; labels: boolean; property: boolean };
   getMap: () => L.Map | null;
+  centerOnGpsLocation: () => void;
 }
 
 const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(({ 
   onMeasurement, 
   activeTool,
   mapService = 'esri-satellite',
-  onLocationSearch
+  onLocationSearch,
+  gpsLocation
 }, ref) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -49,6 +52,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const [currentLayer, setCurrentLayer] = useState<L.TileLayer | null>(null);
   const drawnItems = useRef<L.FeatureGroup>(new L.FeatureGroup());
   const searchMarker = useRef<L.Marker | null>(null);
+  const gpsMarker = useRef<L.Marker | null>(null);
 
   // Layer state management
   const [layerStates, setLayerStates] = useState({
@@ -68,6 +72,54 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   // Expanded coverage area including all surrounding counties
   const coverageCenter: [number, number] = [36.6837, -80.2876]; // Patrick County center
   
+  // Center map on GPS location and add/update GPS marker
+  const centerOnGpsLocation = () => {
+    if (!map.current || !gpsLocation) return;
+
+    const { latitude, longitude } = gpsLocation;
+
+    // Remove previous GPS marker
+    if (gpsMarker.current) {
+      map.current.removeLayer(gpsMarker.current);
+    }
+
+    // Create GPS location marker with distinctive blue icon
+    const marker = L.marker([latitude, longitude], {
+      icon: L.divIcon({
+        html: `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="8" fill="#3b82f6" stroke="#ffffff" stroke-width="3"/>
+          <circle cx="12" cy="12" r="4" fill="#ffffff"/>
+          <circle cx="12" cy="12" r="2" fill="#3b82f6"/>
+        </svg>`,
+        className: 'gps-marker-icon',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+      })
+    }).addTo(map.current);
+
+    gpsMarker.current = marker;
+
+    // Add popup with GPS info
+    marker.bindPopup(`
+      <div class="p-2">
+        <div class="font-semibold text-sm flex items-center gap-1">
+          <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="m12 1 0 6m0 6 0 6m11-7-6 0m-6 0-6 0"></path>
+          </svg>
+          Your Location
+        </div>
+        <div class="text-xs text-gray-600 mt-1">
+          Lat: ${latitude.toFixed(6)}<br/>
+          Lng: ${longitude.toFixed(6)}
+        </div>
+      </div>
+    `);
+
+    // Center map on GPS location with appropriate zoom
+    map.current.setView([latitude, longitude], 15);
+  };
+
   // Handle location search from address search bar
   const handleLocationSearch = (lat: number, lng: number, address: string) => {
     if (!map.current) return;
@@ -185,8 +237,9 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     handleLocationSearch,
     toggleLayer,
     getLayerStates: () => layerStates,
-    getMap: () => map.current
-  }), [layerStates]);
+    getMap: () => map.current,
+    centerOnGpsLocation
+  }), [layerStates, gpsLocation]);
 
   // Patrick County, VA coordinates
   const patrickCountyCenter: [number, number] = [36.6837, -80.2876];
@@ -356,10 +409,16 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    // Initialize map centered on Patrick County, VA
+    // Determine initial center - use GPS location if available, otherwise Patrick County
+    const initialCenter: [number, number] = gpsLocation 
+      ? [gpsLocation.latitude, gpsLocation.longitude]
+      : coverageCenter;
+    const initialZoom = gpsLocation ? 15 : 10;
+
+    // Initialize map
     map.current = L.map(mapContainer.current, {
-      center: coverageCenter,
-      zoom: 10, // Zoom out slightly to show more area
+      center: initialCenter,
+      zoom: initialZoom,
       zoomControl: true
     });
 
@@ -398,7 +457,14 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     map.current.setMaxBounds(bounds);
 
     setMapLoaded(true);
-    toast.success(`Map loaded with ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}! Covering Patrick County, VA + surrounding areas`);
+    
+    // Add GPS marker if GPS location is available
+    if (gpsLocation) {
+      centerOnGpsLocation();
+      toast.success(`Map loaded with your current location using ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}`);
+    } else {
+      toast.success(`Map loaded with ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}! Covering Patrick County, VA + surrounding areas`);
+    }
 
     return () => {
       if (map.current) {
@@ -406,7 +472,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         map.current = null;
       }
     };
-  }, []);
+  }, [gpsLocation]);
 
   // Update tile layer when map service changes
   useEffect(() => {
@@ -422,6 +488,13 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
 
     toast.success(`Switched to ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}`);
   }, [mapService, mapLoaded]);
+
+  // Update GPS marker when GPS location changes
+  useEffect(() => {
+    if (mapLoaded && gpsLocation) {
+      centerOnGpsLocation();
+    }
+  }, [gpsLocation, mapLoaded]);
 
   const clearDrawings = () => {
     if (drawnItems.current) {

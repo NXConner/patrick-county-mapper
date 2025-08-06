@@ -8,7 +8,8 @@ import PropertyPanel from '@/components/PropertyInfo/PropertyPanel';
 import AddressSearchBar from '@/components/Map/AddressSearchBar';
 import AsphaltDetector from '@/components/Map/AsphaltDetector';
 import ServiceInfo from '@/components/ServiceInfo/ServiceInfo';
-import { MapPinIcon } from 'lucide-react';
+import { MapPinIcon, Navigation } from 'lucide-react';
+import { useGpsLocation } from '@/hooks/useGpsLocation';
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState('select');
@@ -27,6 +28,9 @@ const Index = () => {
 
   // Map reference for communication with map component
   const mapRef = useRef(null);
+  
+  // GPS location hook
+  const { location: gpsLocation, isLoading: gpsLoading, requestLocation, isSupported: gpsSupported } = useGpsLocation(true);
 
   const handleMeasurement = (measurement: { distance?: number; area?: number }) => {
     setCurrentMeasurement(measurement);
@@ -93,6 +97,25 @@ const Index = () => {
                 onServiceChange={setSelectedMapService}
                 className="min-w-[120px] sm:min-w-[140px] lg:min-w-[180px]"
               />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (gpsLocation && mapRef.current?.centerOnGpsLocation) {
+                    mapRef.current.centerOnGpsLocation();
+                  } else {
+                    requestLocation();
+                  }
+                }}
+                disabled={!gpsSupported || gpsLoading}
+                className="flex items-center gap-1 text-xs"
+                title={gpsSupported ? "Find my location" : "Location not supported"}
+              >
+                <Navigation className={`w-3 h-3 ${gpsLoading ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">
+                  {gpsLoading ? 'Locating...' : 'Locate Me'}
+                </span>
+              </Button>
               <div className="hidden xl:block text-xs text-muted-foreground max-w-xs truncate">
                 Patrick County, VA + Carroll, Floyd, Franklin, Henry Counties + Stokes & Surry Counties, NC
               </div>
@@ -115,6 +138,7 @@ const Index = () => {
           mapService={selectedMapService}
           layerStates={layerStates}
           onLayerToggle={handleLayerToggle}
+          gpsLocation={gpsLocation}
         />
 
         {/* AI Asphalt Detection */}
