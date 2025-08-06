@@ -40,6 +40,8 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   showAsphaltDetector
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDesktopToolbarOpen, setIsDesktopToolbarOpen] = useState(true);
+  
   const tools = [
     {
       id: 'select',
@@ -114,10 +116,13 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
 
   // Toolbar content component to reuse in both mobile and desktop versions
   const ToolbarContent = () => (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-[slide-up_0.3s_ease-out]">
       {/* Tools Section */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Measurement Tools</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <div className="w-2 h-2 bg-primary rounded-full pulse-glow"></div>
+          Measurement Tools
+        </h3>
         <div className="grid grid-cols-2 gap-2">
           {tools.map((tool) => (
             <Button
@@ -128,7 +133,9 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                 onToolChange(tool.id);
                 setIsMobileMenuOpen(false); // Close mobile menu on tool selection
               }}
-              className="h-16 sm:h-auto p-2 flex flex-col items-center gap-1 transition-fast text-xs touch-manipulation"
+              className={`h-16 sm:h-auto p-2 flex flex-col items-center gap-1 transition-all duration-300 text-xs touch-manipulation interactive-hover ${
+                activeTool === tool.id ? 'glow-effect scale-105' : ''
+              }`}
               title={tool.description}
             >
               {tool.icon}
@@ -138,54 +145,67 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
         </div>
       </div>
 
-      <Separator className="bg-border/50" />
+      <Separator className="bg-border/50 shimmer-effect" />
 
       {/* Current Measurement Display */}
       {currentMeasurement && (
-        <div>
-          <h3 className="text-sm font-semibold text-foreground mb-3">Current Measurement</h3>
+        <div className="animate-[scale-in_0.4s_ease-out]">
+          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <div className="w-2 h-2 bg-gis-measure rounded-full pulse-glow"></div>
+            Current Measurement
+          </h3>
           <div className="space-y-2">
             {currentMeasurement.area && (
-              <Badge variant="secondary" className="w-full justify-between p-2">
+              <Badge variant="secondary" className="w-full justify-between p-3 interactive-hover bg-gradient-to-r from-gis-success/20 to-gis-success/10 border-gis-success/30">
                 <span>Area:</span>
-                <span className="text-gis-success font-medium">{currentMeasurement.area.toFixed(2)} sq ft</span>
+                <span className="text-gis-success font-medium glow-effect">{currentMeasurement.area.toFixed(2)} sq ft</span>
               </Badge>
             )}
             {currentMeasurement.distance && (
-              <Badge variant="secondary" className="w-full justify-between p-2">
+              <Badge variant="secondary" className="w-full justify-between p-3 interactive-hover bg-gradient-to-r from-gis-measure/20 to-gis-measure/10 border-gis-measure/30">
                 <span>Distance:</span>
-                <span className="text-gis-measure font-medium">{currentMeasurement.distance.toFixed(2)} ft</span>
+                <span className="text-gis-measure font-medium glow-effect">{currentMeasurement.distance.toFixed(2)} ft</span>
               </Badge>
             )}
           </div>
         </div>
       )}
 
-      <Separator className="bg-border/50" />
+      <Separator className="bg-border/50 shimmer-effect" />
 
       {/* Layer Controls */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Map Layers</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <div className="w-2 h-2 bg-gis-info rounded-full pulse-glow"></div>
+          Map Layers
+        </h3>
         <div className="space-y-2">
           {layerControls.map((layer) => (
             <button
               key={layer.id}
               onClick={() => onLayerToggle?.(layer.id)}
-              className="w-full flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-fast touch-manipulation"
+              className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-all duration-300 touch-manipulation interactive-hover glass-effect border border-border/30"
               title={layer.description}
             >
-              <span className="text-sm text-muted-foreground">{layer.name}</span>
-              <div className={`w-4 h-4 rounded-full ${layer.active ? 'bg-primary' : 'bg-muted'} transition-fast`} />
+              <span className="text-sm text-muted-foreground font-medium">{layer.name}</span>
+              <div className={`w-5 h-5 rounded-full transition-all duration-300 ${
+                layer.active 
+                  ? 'bg-gradient-to-r from-primary to-accent glow-effect scale-110' 
+                  : 'bg-muted border-2 border-border'
+              }`} />
             </button>
           ))}
         </div>
       </div>
 
-      <Separator className="bg-border/50" />
+      <Separator className="bg-border/50 shimmer-effect" />
 
       {/* AI Tools Section */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">AI Analysis Tools</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <div className="w-2 h-2 bg-gis-draw rounded-full pulse-glow"></div>
+          AI Analysis Tools
+        </h3>
         <div className="space-y-2">
           <Button
             onClick={() => {
@@ -194,17 +214,19 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
             }}
             variant={showAsphaltDetector ? "default" : "outline"}
             size="sm"
-            className="w-full justify-start h-12 touch-manipulation"
+            className={`w-full justify-start h-12 touch-manipulation transition-all duration-300 interactive-hover ${
+              showAsphaltDetector ? 'glow-effect bg-gradient-to-r from-gis-draw to-gis-info' : ''
+            }`}
           >
             <Zap className="w-4 h-4 mr-2" />
             {showAsphaltDetector ? 'Hide AI Detection' : 'AI Asphalt Detection'}
           </Button>
           
           {showAsphaltDetector && (
-            <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950/20 p-3 rounded">
-              <div className="flex items-center gap-2 mb-1">
-                <Eye className="w-3 h-3" />
-                <span className="font-medium">Computer Vision Active</span>
+            <div className="text-xs text-muted-foreground bg-gradient-to-r from-blue-50/80 to-blue-100/80 dark:from-blue-950/20 dark:to-blue-900/20 p-4 rounded-lg border border-blue-200/30 dark:border-blue-800/30 animate-[slide-up_0.3s_ease-out] glass-effect">
+              <div className="flex items-center gap-2 mb-2">
+                <Eye className="w-3 h-3 text-gis-draw" />
+                <span className="font-medium text-gis-draw">Computer Vision Active</span>
               </div>
               <div>Click "Run AI Detection" to analyze satellite imagery for asphalt surfaces</div>
             </div>
@@ -212,17 +234,30 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
         </div>
       </div>
 
-      <Separator className="bg-border/50" />
+      <Separator className="bg-border/50 shimmer-effect" />
 
       {/* Coverage Area */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-3">Coverage Area</h3>
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div><strong>Virginia Counties:</strong></div>
-          <div>• Patrick County (Primary)</div>
-          <div>• Carroll, Floyd, Franklin, Henry Counties</div>
-          <div><strong>North Carolina Counties:</strong></div>
-          <div>• Stokes & Surry Counties</div>
+        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <div className="w-2 h-2 bg-gis-warning rounded-full pulse-glow"></div>
+          Coverage Area
+        </h3>
+        <div className="text-xs text-muted-foreground space-y-2 glass-effect p-3 rounded-lg border border-border/30">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-primary rounded-full"></div>
+            <strong>Virginia Counties:</strong>
+          </div>
+          <div className="ml-4 space-y-1">
+            <div>• Patrick County (Primary)</div>
+            <div>• Carroll, Floyd, Franklin, Henry Counties</div>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="w-2 h-2 bg-accent rounded-full"></div>
+            <strong>North Carolina Counties:</strong>
+          </div>
+          <div className="ml-4">
+            <div>• Stokes & Surry Counties</div>
+          </div>
         </div>
       </div>
     </div>
@@ -236,14 +271,17 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
           <SheetTrigger asChild>
             <Button
               size="sm"
-              className="fixed top-20 left-4 z-50 bg-gis-toolbar/95 backdrop-blur-sm shadow-toolbar h-12 w-12 p-0 touch-manipulation"
+              className="fixed top-20 left-4 z-50 floating-card h-12 w-12 p-0 touch-manipulation interactive-hover"
             >
               <Menu className="w-5 h-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="bg-gis-toolbar/95 backdrop-blur-sm border-border/50 w-[300px] overflow-y-auto">
+          <SheetContent side="left" className="panel-gradient w-[320px] overflow-y-auto">
             <SheetHeader>
-              <SheetTitle className="text-foreground">Tools & Layers</SheetTitle>
+              <SheetTitle className="text-foreground flex items-center gap-2">
+                <div className="w-3 h-3 bg-primary rounded-full pulse-glow"></div>
+                Tools & Layers
+              </SheetTitle>
             </SheetHeader>
             <div className="mt-6">
               <ToolbarContent />
@@ -252,13 +290,40 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
         </Sheet>
       </div>
 
-      {/* Desktop: Fixed Card */}
+      {/* Desktop: Fixed Card with Close Button */}
       <div className="hidden sm:block">
-        <Card className="absolute top-4 left-4 z-50 bg-gis-toolbar/95 backdrop-blur-sm border-border/50 shadow-toolbar max-w-[300px] lg:max-w-[320px]">
-          <div className="p-4">
-            <ToolbarContent />
-          </div>
-        </Card>
+        {!isDesktopToolbarOpen ? (
+          <Button
+            onClick={() => setIsDesktopToolbarOpen(true)}
+            size="sm"
+            className="fixed top-4 left-4 z-50 floating-card h-12 w-12 p-0 interactive-hover"
+            title="Open Tools & Layers"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        ) : (
+          <Card className="absolute top-4 left-4 z-50 floating-card max-w-[300px] lg:max-w-[320px] animate-[slide-in-right_0.4s_ease-out]">
+            <div className="p-4">
+              {/* Header with Close Button */}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <div className="w-3 h-3 bg-primary rounded-full pulse-glow"></div>
+                  Tools & Layers
+                </h2>
+                <Button
+                  onClick={() => setIsDesktopToolbarOpen(false)}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 hover:bg-destructive/20 hover:text-destructive transition-all duration-300 interactive-hover"
+                  title="Close Tools & Layers"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <ToolbarContent />
+            </div>
+          </Card>
+        )}
       </div>
     </>
   );
