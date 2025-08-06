@@ -12,6 +12,14 @@ const Index = () => {
   const [selectedMapService, setSelectedMapService] = useState('esri-satellite');
   const mapRef = useRef<any>(null);
 
+  // Layer states
+  const [layerStates, setLayerStates] = useState({
+    satellite: true,
+    roads: true,
+    labels: true,
+    property: false
+  });
+
   const handleMeasurement = (measurement: { distance?: number; area?: number }) => {
     setCurrentMeasurement(measurement);
   };
@@ -20,6 +28,19 @@ const Index = () => {
     // This will be handled by the map component
     if (mapRef.current && mapRef.current.handleLocationSearch) {
       mapRef.current.handleLocationSearch(lat, lng, address);
+    }
+  };
+
+  const handleLayerToggle = (layerId: string) => {
+    // Toggle layer in map component
+    if (mapRef.current && mapRef.current.toggleLayer) {
+      mapRef.current.toggleLayer(layerId);
+      
+      // Update local state
+      setLayerStates(prev => ({
+        ...prev,
+        [layerId]: !prev[layerId]
+      }));
     }
   };
 
@@ -86,6 +107,8 @@ const Index = () => {
           activeTool={activeTool}
           onToolChange={setActiveTool}
           currentMeasurement={currentMeasurement}
+          onLayerToggle={handleLayerToggle}
+          layerStates={layerStates}
         />
         
         {/* Property Information Panel */}

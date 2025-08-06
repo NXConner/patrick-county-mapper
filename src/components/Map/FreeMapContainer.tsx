@@ -28,6 +28,8 @@ interface FreeMapContainerProps {
 
 interface FreeMapContainerRef {
   handleLocationSearch: (lat: number, lng: number, address: string) => void;
+  toggleLayer: (layerId: string) => void;
+  getLayerStates: () => { satellite: boolean; roads: boolean; labels: boolean; property: boolean };
 }
 
 const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(({ 
@@ -42,6 +44,18 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const [currentLayer, setCurrentLayer] = useState<L.TileLayer | null>(null);
   const drawnItems = useRef<L.FeatureGroup>(new L.FeatureGroup());
   const searchMarker = useRef<L.Marker | null>(null);
+
+  // Layer state management
+  const [layerStates, setLayerStates] = useState({
+    satellite: true,
+    roads: true,
+    labels: true,
+    property: false
+  });
+
+  // Layer references
+  const roadsLayer = useRef<L.TileLayer | null>(null);
+  const labelsLayer = useRef<L.TileLayer | null>(null);
 
   // Expanded coverage area including all surrounding counties
   const coverageCenter: [number, number] = [36.6837, -80.2876]; // Patrick County center
@@ -87,10 +101,70 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     }
   };
 
-  // Expose the search handler for parent components
+  // Create overlay layers
+  const createOverlayLayers = () => {
+    // Roads overlay using CartoDB Positron (roads only) 
+    roadsLayer.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
+      attribution: '© CARTO, © OpenStreetMap contributors',
+      maxZoom: 19,
+      opacity: 0.7,
+      className: 'roads-overlay'
+    });
+
+    // Labels overlay using CartoDB Labels
+    labelsLayer.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
+      attribution: '© CARTO, © OpenStreetMap contributors',
+      maxZoom: 19,
+      opacity: 0.8,
+      className: 'labels-overlay'
+    });
+  };
+
+  // Toggle layer visibility
+  const toggleLayer = (layerId: string) => {
+    if (!map.current) return;
+
+    const newStates = { ...layerStates, [layerId]: !layerStates[layerId] };
+    setLayerStates(newStates);
+
+    switch (layerId) {
+      case 'roads':
+        if (newStates.roads && roadsLayer.current) {
+          roadsLayer.current.addTo(map.current);
+        } else if (roadsLayer.current) {
+          map.current.removeLayer(roadsLayer.current);
+        }
+        break;
+      
+      case 'labels':
+        if (newStates.labels && labelsLayer.current) {
+          labelsLayer.current.addTo(map.current);
+        } else if (labelsLayer.current) {
+          map.current.removeLayer(labelsLayer.current);
+        }
+        break;
+        
+      case 'satellite':
+        // Toggle base satellite layer
+        if (currentLayer) {
+          if (newStates.satellite) {
+            currentLayer.setOpacity(1);
+          } else {
+            currentLayer.setOpacity(0.3);
+          }
+        }
+        break;
+    }
+
+    toast.success(`${layerId.charAt(0).toUpperCase() + layerId.slice(1)} layer ${newStates[layerId] ? 'enabled' : 'disabled'}`);
+  };
+
+  // Expose layer controls to parent components
   useImperativeHandle(ref, () => ({
-    handleLocationSearch
-  }), []);
+    handleLocationSearch,
+    toggleLayer,
+    getLayerStates: () => layerStates
+  }), [layerStates]);
 
   // Patrick County, VA coordinates
   const patrickCountyCenter: [number, number] = [36.6837, -80.2876];
@@ -170,6 +244,17 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
 
     // Add drawn items layer
     drawnItems.current.addTo(map.current);
+
+    // Create and add overlay layers
+    createOverlayLayers();
+    
+    // Add initial overlay layers based on state
+    if (layerStates.roads && roadsLayer.current) {
+      roadsLayer.current.addTo(map.current);
+    }
+    if (layerStates.labels && labelsLayer.current) {
+      labelsLayer.current.addTo(map.current);
+    }
 
     // Add scale control
     L.control.scale({

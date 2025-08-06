@@ -127,3 +127,22 @@ All colors MUST be HSL for consistent theming.
     @apply bg-background text-foreground;
   }
 }
+
+/* Map overlay styles */
+.roads-overlay {
+  mix-blend-mode: multiply;
+  filter: contrast(1.2) saturate(0.8);
+}
+
+.labels-overlay {
+  mix-blend-mode: normal;
+  filter: contrast(1.3) brightness(1.1);
+}
+
+.leaflet-tile-pane .roads-overlay {
+  z-index: 200;
+}
+
+.leaflet-tile-pane .labels-overlay {
+  z-index: 300;
+}

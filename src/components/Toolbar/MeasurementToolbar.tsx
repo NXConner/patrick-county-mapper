@@ -8,12 +8,16 @@ interface MeasurementToolbarProps {
   activeTool: string;
   onToolChange: (tool: string) => void;
   currentMeasurement?: { distance?: number; area?: number };
+  onLayerToggle?: (layerId: string) => void;
+  layerStates?: { satellite: boolean; roads: boolean; labels: boolean; property: boolean };
 }
 
 const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   activeTool,
   onToolChange,
-  currentMeasurement
+  currentMeasurement,
+  onLayerToggle,
+  layerStates
 }) => {
   const tools = [
     {
@@ -59,26 +63,31 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
     }
   ];
 
+  // Dynamic layer controls based on current state
   const layerControls = [
     {
       id: 'satellite',
       name: 'Satellite',
-      active: true
+      active: layerStates?.satellite ?? true,
+      description: 'High-resolution satellite imagery'
     },
     {
       id: 'roads',
       name: 'Roads',
-      active: true
+      active: layerStates?.roads ?? true,
+      description: 'Street and road overlays'
     },
     {
       id: 'labels',
       name: 'Labels',
-      active: true
+      active: layerStates?.labels ?? true,
+      description: 'Place names and street labels'
     },
     {
       id: 'property',
       name: 'Property Lines',
-      active: false
+      active: layerStates?.property ?? false,
+      description: 'Property boundaries (coming soon)'
     }
   ];
 
@@ -135,10 +144,16 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
           <h3 className="text-sm font-semibold text-foreground mb-2">Map Layers</h3>
           <div className="space-y-1">
             {layerControls.map((layer) => (
-              <div key={layer.id} className="flex items-center justify-between">
+              <button
+                key={layer.id}
+                onClick={() => onLayerToggle?.(layer.id)}
+                disabled={layer.id === 'property'} // Disable property lines for now
+                className="w-full flex items-center justify-between p-1 rounded hover:bg-muted/50 transition-fast disabled:opacity-50 disabled:cursor-not-allowed"
+                title={layer.description}
+              >
                 <span className="text-xs text-muted-foreground">{layer.name}</span>
                 <div className={`w-3 h-3 rounded-full ${layer.active ? 'bg-primary' : 'bg-muted'} transition-fast`} />
-              </div>
+              </button>
             ))}
           </div>
         </div>
