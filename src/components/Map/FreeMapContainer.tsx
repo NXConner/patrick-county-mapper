@@ -53,9 +53,12 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     property: false
   });
 
+  const [propertyLoading, setPropertyLoading] = useState(false);
+
   // Layer references
   const roadsLayer = useRef<L.TileLayer | null>(null);
   const labelsLayer = useRef<L.TileLayer | null>(null);
+  const propertyLayer = useRef<L.GeoJSON | null>(null);
 
   // Expanded coverage area including all surrounding counties
   const coverageCenter: [number, number] = [36.6837, -80.2876]; // Patrick County center
@@ -154,6 +157,19 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           }
         }
         break;
+        
+      case 'property':
+        if (newStates.property) {
+          // Load property boundaries if not already loaded
+          if (!propertyLayer.current) {
+            loadPropertyBoundaries();
+          } else if (map.current) {
+            propertyLayer.current.addTo(map.current);
+          }
+        } else if (propertyLayer.current && map.current) {
+          map.current.removeLayer(propertyLayer.current);
+        }
+        break;
     }
 
     toast.success(`${layerId.charAt(0).toUpperCase() + layerId.slice(1)} layer ${newStates[layerId] ? 'enabled' : 'disabled'}`);
@@ -225,6 +241,110 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       attribution: provider.attribution,
       maxZoom: provider.maxZoom || 18
     });
+  };
+
+  // Load property boundaries (building footprints as property indicators)
+  const loadPropertyBoundaries = async () => {
+    try {
+      if (!map.current) return;
+      
+      setPropertyLoading(true);
+      toast.info('Loading property boundaries...');
+
+      // Use Overpass API to get building outlines for the current view
+      const bounds = map.current.getBounds();
+      const south = bounds.getSouth();
+      const west = bounds.getWest();
+      const north = bounds.getNorth();
+      const east = bounds.getEast();
+
+      const overpassQuery = `
+        [out:json][timeout:25];
+        (
+          way["building"](${south},${west},${north},${east});
+          relation["building"](${south},${west},${north},${east});
+        );
+        out geom;
+      `;
+
+      const overpassUrl = 'https://overpass-api.de/api/interpreter';
+      const response = await fetch(overpassUrl, {
+        method: 'POST',
+        body: overpassQuery
+      });
+
+      if (!response.ok) {
+        throw new Error('Property data service unavailable');
+      }
+
+      const data = await response.json();
+      
+      // Convert Overpass data to GeoJSON
+      const geojsonFeatures = data.elements
+        .filter(element => element.type === 'way' && element.geometry)
+        .map(element => ({
+          type: 'Feature',
+          properties: {
+            id: element.id,
+            building: element.tags?.building || 'yes',
+            addr_street: element.tags?.['addr:street'],
+            addr_housenumber: element.tags?.['addr:housenumber']
+          },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [element.geometry.map(coord => [coord.lon, coord.lat])]
+          }
+        }));
+
+      const geojson = {
+        type: 'FeatureCollection',
+        features: geojsonFeatures
+      };
+
+      // Remove existing property layer
+      if (propertyLayer.current && map.current.hasLayer(propertyLayer.current)) {
+        map.current.removeLayer(propertyLayer.current);
+      }
+
+      // Create new property layer
+      propertyLayer.current = L.geoJSON(geojson, {
+        style: {
+          color: '#ff6b35',
+          weight: 2,
+          opacity: 0.8,
+          fillColor: '#ff6b35',
+          fillOpacity: 0.1,
+          dashArray: '5,5',
+          className: 'property-boundary'
+        },
+        onEachFeature: (feature, layer) => {
+          const props = feature.properties;
+          const address = props.addr_street && props.addr_housenumber 
+            ? `${props.addr_housenumber} ${props.addr_street}`
+            : 'Building';
+          
+          layer.bindPopup(`
+            <div class="p-2">
+              <div class="font-semibold text-sm">Property Boundary</div>
+              <div class="text-xs text-gray-600 mt-1">${address}</div>
+              <div class="text-xs text-gray-500">Building ID: ${props.id}</div>
+            </div>
+          `);
+        }
+      });
+
+      if (layerStates.property) {
+        propertyLayer.current.addTo(map.current);
+      }
+
+      toast.success(`Loaded ${geojsonFeatures.length} property boundaries`);
+
+    } catch (error) {
+      console.error('Error loading property boundaries:', error);
+      toast.error('Property boundaries temporarily unavailable');
+    } finally {
+      setPropertyLoading(false);
+    }
   };
 
   useEffect(() => {

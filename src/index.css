@@ -146,3 +146,21 @@ All colors MUST be HSL for consistent theming.
 .leaflet-tile-pane .labels-overlay {
   z-index: 300;
 }
+
+/* Property layer styles */
+.leaflet-container .property-boundary {
+  stroke-dasharray: 5,5;
+  stroke-width: 2;
+  animation: dash 1s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -10;
+  }
+}
+
+.leaflet-popup-content {
+  margin: 8px 12px !important;
+  line-height: 1.4;
+}

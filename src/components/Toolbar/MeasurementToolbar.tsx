@@ -87,7 +87,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
       id: 'property',
       name: 'Property Lines',
       active: layerStates?.property ?? false,
-      description: 'Property boundaries (coming soon)'
+      description: 'Building outlines and property boundaries'
     }
   ];
 
@@ -147,8 +147,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
               <button
                 key={layer.id}
                 onClick={() => onLayerToggle?.(layer.id)}
-                disabled={layer.id === 'property'} // Disable property lines for now
-                className="w-full flex items-center justify-between p-1 rounded hover:bg-muted/50 transition-fast disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-between p-1 rounded hover:bg-muted/50 transition-fast"
                 title={layer.description}
               >
                 <span className="text-xs text-muted-foreground">{layer.name}</span>
