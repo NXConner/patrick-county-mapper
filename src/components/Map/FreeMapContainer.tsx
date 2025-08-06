@@ -24,12 +24,17 @@ interface FreeMapContainerProps {
   activeTool?: string;
   mapService?: string;
   onLocationSearch?: (lat: number, lng: number, address: string) => void;
+  selectedMapService?: string;
+  layerStates?: any;
+  onLayerToggle?: (layerId: string) => void;
+  onPropertySelect?: (property: any) => void;
 }
 
 interface FreeMapContainerRef {
   handleLocationSearch: (lat: number, lng: number, address: string) => void;
   toggleLayer: (layerId: string) => void;
   getLayerStates: () => { satellite: boolean; roads: boolean; labels: boolean; property: boolean };
+  getMap: () => L.Map | null;
 }
 
 const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(({ 
@@ -308,7 +313,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       }
 
       // Create new property layer
-      propertyLayer.current = L.geoJSON(geojson, {
+      propertyLayer.current = L.geoJSON(geojson as any, {
         style: {
           color: '#ff6b35',
           weight: 2,

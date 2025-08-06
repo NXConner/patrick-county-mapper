@@ -21,41 +21,25 @@ export const mapServices: MapService[] = [
     id: 'esri-satellite',
     name: 'ESRI World Imagery',
     description: 'High-resolution satellite imagery (FREE)',
-    cost: 'Free',
+    type: 'free',
     url: 'https://www.esri.com',
-    features: [
-      '✓ High-resolution satellite imagery',
-      '✓ Global coverage',
-      '✓ No API key required',
-      '✓ Up to zoom level 20',
-      '✓ Recent imagery updates'
-    ]
+    apiKey: false
   },
   {
     id: 'google-satellite',
     name: 'Google Satellite',
     description: 'Google satellite imagery (FREE)',
-    cost: 'Free',
+    type: 'free',
     url: 'https://maps.google.com',
-    features: [
-      '✓ High-resolution satellite imagery',
-      '✓ Global coverage',
-      '✓ No API key required',
-      '✓ Up to zoom level 20'
-    ]
+    apiKey: false
   },
   {
     id: 'leaflet-osm',
     name: 'OpenStreetMap',
     description: 'Open source street map tiles',
-    cost: 'Free',
+    type: 'free',
     url: 'https://www.openstreetmap.org',
-    features: [
-      '✓ Open source mapping',
-      '✓ Community-driven data',
-      '✓ No API key required',
-      '✓ Street-level detail'
-    ]
+    apiKey: false
   },
   {
     id: 'qgis',

@@ -111,7 +111,7 @@ const Index = () => {
             setSelectedProperty(property);
             setPropertyPanelOpen(true);
           }}
-          selectedMapService={selectedMapService}
+          mapService={selectedMapService}
           layerStates={layerStates}
           onLayerToggle={handleLayerToggle}
         />
