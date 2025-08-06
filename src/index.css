@@ -262,7 +262,7 @@ Enhanced with striking visual appeal and modern UX patterns.
   /* Enhanced Button Styles */
   .btn-primary-enhanced {
     @apply bg-gradient-to-r from-primary to-primary/80 text-primary-foreground;
-    @apply shadow-success hover:shadow-glow;
+    @apply shadow-lg hover:shadow-xl;
     transition: var(--transition-bounce);
   }
 
