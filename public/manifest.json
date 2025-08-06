@@ -1,0 +1,105 @@
+{
+  "name": "Patrick County GIS Pro",
+  "short_name": "GIS Pro",
+  "description": "Professional mapping and measurement tools for Patrick County, Virginia and surrounding areas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["business", "utilities", "productivity"],
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Patrick County GIS Pro on desktop"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "640x1136",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Patrick County GIS Pro on mobile"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Measure Distance",
+      "short_name": "Distance",
+      "description": "Start measuring distances",
+      "url": "/?tool=distance",
+      "icons": [
+        {
+          "src": "/icons/shortcut-distance.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Measure Area",
+      "short_name": "Area",
+      "description": "Start measuring areas",
+      "url": "/?tool=area",
+      "icons": [
+        {
+          "src": "/icons/shortcut-area.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.patrickcounty.gispro",
+      "id": "com.patrickcounty.gispro"
+    }
+  ],
+  "prefer_related_applications": false
+}

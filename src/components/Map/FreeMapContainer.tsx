@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 
-let DefaultIcon = L.divIcon({
+const DefaultIcon = L.divIcon({
   html: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
     <circle cx="12" cy="9" r="2.5" fill="#ffffff"/>
@@ -19,22 +19,40 @@ let DefaultIcon = L.divIcon({
 
 L.Marker.prototype.options.icon = DefaultIcon;
 
+interface LayerStates {
+  satellite: boolean;
+  roads: boolean;
+  labels: boolean;
+  property: boolean;
+}
+
+interface PropertyInfo {
+  parcelId: string;
+  owner: string;
+  address: string;
+  acreage: number;
+  taxValue: number;
+  zoning: string;
+  coordinates?: [number, number];
+  area?: number;
+}
+
 interface FreeMapContainerProps {
   onMeasurement?: (measurement: { distance?: number; area?: number }) => void;
   activeTool?: string;
   mapService?: string;
   onLocationSearch?: (lat: number, lng: number, address: string) => void;
   selectedMapService?: string;
-  layerStates?: any;
+  layerStates?: LayerStates;
   onLayerToggle?: (layerId: string) => void;
-  onPropertySelect?: (property: any) => void;
+  onPropertySelect?: (property: PropertyInfo) => void;
   gpsLocation?: { latitude: number; longitude: number } | null;
 }
 
 interface FreeMapContainerRef {
   handleLocationSearch: (lat: number, lng: number, address: string) => void;
   toggleLayer: (layerId: string) => void;
-  getLayerStates: () => { satellite: boolean; roads: boolean; labels: boolean; property: boolean };
+  getLayerStates: () => LayerStates;
   getMap: () => L.Map | null;
   centerOnGpsLocation: () => void;
 }
@@ -366,7 +384,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       }
 
       // Create new property layer
-      propertyLayer.current = L.geoJSON(geojson as any, {
+      propertyLayer.current = L.geoJSON(geojson as GeoJSON.FeatureCollection, {
         style: {
           color: '#ff6b35',
           weight: 2,
