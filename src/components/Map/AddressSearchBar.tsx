@@ -125,10 +125,14 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="Search addresses in Patrick County + surrounding areas..."
+          placeholder="Search addresses..."
           value={query}
           onChange={handleInputChange}
-          className="pl-10 pr-10 bg-background/95 backdrop-blur-sm border-border/50 text-sm"
+          className="pl-10 pr-10 bg-background/95 backdrop-blur-sm border-border/50 text-base h-11 touch-manipulation"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck="false"
         />
         {query && (
           <Button
@@ -155,7 +159,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
               <button
                 key={index}
                 onClick={() => handleResultSelect(result)}
-                className="w-full text-left p-3 hover:bg-muted/50 rounded-md transition-colors border-0 bg-transparent"
+                className="w-full text-left p-4 hover:bg-muted/50 rounded-md transition-colors border-0 bg-transparent touch-manipulation"
               >
                 <div className="flex items-start gap-2">
                   <MapPin className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />

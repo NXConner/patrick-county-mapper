@@ -174,7 +174,7 @@ const MapServiceDropdown: React.FC<MapServiceDropdownProps> = ({
         Mapping Service
       </label>
       <Select value={selectedService} onValueChange={onServiceChange}>
-        <SelectTrigger className="w-full bg-gis-toolbar/80 backdrop-blur-sm border-gis-border text-foreground h-8 text-sm">
+        <SelectTrigger className="w-full bg-gis-toolbar/80 backdrop-blur-sm border-gis-border text-foreground h-11 text-base touch-manipulation">
           <SelectValue placeholder="Select mapping service">
             {selectedServiceData && (
               <div className="flex items-center gap-2">

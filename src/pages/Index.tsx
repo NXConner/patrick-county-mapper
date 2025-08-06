@@ -53,46 +53,47 @@ const Index = () => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col bg-gis-satellite">
+    <div className="h-screen w-full flex flex-col bg-gis-satellite safe-area-inset-top safe-area-inset-left safe-area-inset-right">
       {/* Header */}
       <div className="bg-gradient-toolbar backdrop-blur-sm border-b border-border/20 z-50 flex-shrink-0">
-        <div className="px-3 sm:px-6 py-2 sm:py-3">
+        <div className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
           {/* Top row */}
-          <div className="flex items-center justify-between mb-2 sm:mb-0">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <svg className="w-3 h-3 sm:w-5 sm:h-5 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V7.618a1 1 0 01.553-.894L9 4l6 3 5.447-2.724A1 1 0 0121 5.176v8.764a1 1 0 01-.553.894L15 17l-6-3z" />
                   </svg>
                 </div>
-                <div>
-                  <h1 className="text-sm sm:text-lg font-bold text-foreground">Patrick County GIS Pro</h1>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground hidden sm:block">High-resolution mapping & measurement tools</p>
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-sm sm:text-base lg:text-lg font-bold text-foreground truncate">Patrick County GIS Pro</h1>
+                  <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">High-resolution mapping & measurement tools</p>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary rounded-full animate-pulse"></div>
-                <span className="hidden sm:inline">Live Data</span>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <span className="hidden xs:inline text-xs">Live</span>
+                <span className="hidden sm:inline text-xs">Data</span>
               </div>
             </div>
           </div>
 
           {/* Bottom row - Search and controls */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-            <div className="flex-1 max-w-md">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 lg:gap-4">
+            <div className="flex-1 max-w-full sm:max-w-md">
               <AddressSearchBar onLocationSelect={handleLocationSearch} />
             </div>
             <div className="flex items-center gap-2 justify-between sm:justify-end">
               <MapServiceDropdown
                 selectedService={selectedMapService}
                 onServiceChange={setSelectedMapService}
-                className="min-w-[140px] sm:min-w-[180px]"
+                className="min-w-[120px] sm:min-w-[140px] lg:min-w-[180px]"
               />
-              <div className="hidden lg:block text-[10px] text-muted-foreground">
+              <div className="hidden xl:block text-xs text-muted-foreground max-w-xs truncate">
                 Patrick County, VA + Carroll, Floyd, Franklin, Henry Counties + Stokes & Surry Counties, NC
               </div>
             </div>

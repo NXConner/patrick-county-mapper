@@ -125,6 +125,109 @@ All colors MUST be HSL for consistent theming.
 
   body {
     @apply bg-background text-foreground;
+    font-size: 16px; /* Ensure minimum 16px for iOS zoom prevention */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Responsive typography scale */
+  html {
+    font-size: 14px;
+  }
+
+  @media (min-width: 640px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    html {
+      font-size: 16px;
+    }
+  }
+
+  /* Touch optimization */
+  button, [role="button"], input, select, textarea {
+    min-height: 44px; /* iOS recommended minimum touch target */
+    min-width: 44px;
+  }
+
+  /* Improve touch scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe area insets for mobile devices */
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-inset-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-inset-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Mobile-specific optimizations */
+  @media (max-width: 640px) {
+    /* Prevent zoom on focus for iOS Safari */
+    input[type="text"],
+    input[type="search"],
+    input[type="email"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="url"],
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+
+    /* Improve touch targets */
+    button,
+    .btn,
+    [role="button"],
+    input,
+    select,
+    textarea {
+      min-height: 44px;
+      min-width: 44px;
+    }
+
+    /* Optimize map container for mobile */
+    .leaflet-container {
+      touch-action: pan-x pan-y pinch-zoom;
+    }
+
+    /* Improve scroll performance */
+    .overflow-y-auto,
+    .overflow-auto {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
+  }
+
+  /* High DPI display optimizations */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
+    .leaflet-container {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+  }
+
+  /* Dark mode mobile optimizations */
+  @media (prefers-color-scheme: dark) and (max-width: 640px) {
+    /* Ensure better contrast on mobile in dark mode */
+    .text-muted-foreground {
+      color: hsl(215 20.2% 70%);
+    }
   }
 }
 
