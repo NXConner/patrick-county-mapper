@@ -1,15 +1,17 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Suspense, lazy } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import FreeMapContainer from '@/components/Map/FreeMapContainer';
 import MapServiceDropdown from '@/components/Map/MapServiceDropdown';
-import MeasurementToolbar from '@/components/Toolbar/MeasurementToolbar';
-import PropertyPanel from '@/components/PropertyInfo/PropertyPanel';
 import AddressSearchBar from '@/components/Map/AddressSearchBar';
-import AsphaltDetector from '@/components/Map/AsphaltDetector';
-import ServiceInfo from '@/components/ServiceInfo/ServiceInfo';
 import { MapPinIcon, Navigation } from 'lucide-react';
 import { useGpsLocation } from '@/hooks/useGpsLocation';
+
+// Lazy load heavy components
+const FreeMapContainer = lazy(() => import('@/components/Map/FreeMapContainer'));
+const MeasurementToolbar = lazy(() => import('@/components/Toolbar/MeasurementToolbar'));
+const PropertyPanel = lazy(() => import('@/components/PropertyInfo/PropertyPanel'));
+const AsphaltDetector = lazy(() => import('@/components/Map/AsphaltDetector'));
+const ServiceInfo = lazy(() => import('@/components/ServiceInfo/ServiceInfo'));
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState('select');
@@ -126,56 +128,65 @@ const Index = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 relative overflow-hidden">
-        {/* Map Component */}
-        <FreeMapContainer
-          ref={mapRef}
-          activeTool={activeTool}
-          onMeasurement={handleMeasurement}
-          onPropertySelect={(property) => {
-            setSelectedProperty(property);
-            setPropertyPanelOpen(true);
-          }}
-          mapService={selectedMapService}
-          layerStates={layerStates}
-          onLayerToggle={handleLayerToggle}
-          gpsLocation={gpsLocation}
-        />
+        <Suspense fallback={
+          <div className="h-full w-full flex items-center justify-center bg-muted/20">
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-sm text-muted-foreground">Loading map...</p>
+            </div>
+          </div>
+        }>
+          {/* Map Component */}
+          <FreeMapContainer
+            ref={mapRef}
+            activeTool={activeTool}
+            onMeasurement={handleMeasurement}
+            onPropertySelect={(property) => {
+              setSelectedProperty(property);
+              setPropertyPanelOpen(true);
+            }}
+            mapService={selectedMapService}
+            layerStates={layerStates}
+            onLayerToggle={handleLayerToggle}
+            gpsLocation={gpsLocation}
+          />
 
-        {/* AI Asphalt Detection */}
-        {showAsphaltDetector && (
-          <AsphaltDetector 
-            map={mapRef.current?.getMap?.() || null}
-            onDetectionComplete={(results) => {
-              console.log('Asphalt detection results:', results);
-              toast.success(`AI analysis complete: ${results.length} surfaces detected`);
+          {/* AI Asphalt Detection */}
+          {showAsphaltDetector && (
+            <AsphaltDetector 
+              map={mapRef.current?.getMap?.() || null}
+              onDetectionComplete={(results) => {
+                console.log('Asphalt detection results:', results);
+                toast.success(`AI analysis complete: ${results.length} surfaces detected`);
+              }}
+            />
+          )}
+
+          {/* Measurement Tools */}
+          <MeasurementToolbar
+            activeTool={activeTool}
+            onToolChange={setActiveTool}
+            currentMeasurement={currentMeasurement}
+            layerStates={layerStates}
+            onLayerToggle={handleLayerToggle}
+            onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
+            showAsphaltDetector={showAsphaltDetector}
+          />
+          
+          {/* Property Information Panel */}
+          <PropertyPanel
+            isOpen={propertyPanelOpen}
+            onToggle={() => setPropertyPanelOpen(!propertyPanelOpen)}
+            propertyInfo={{
+              parcelId: "Sample-123",
+              owner: "John Doe",
+              address: "123 Main St, Stuart, VA",
+              acreage: 2.5,
+              taxValue: 150000,
+              zoning: "Residential"
             }}
           />
-        )}
-
-        {/* Measurement Tools */}
-        <MeasurementToolbar
-          activeTool={activeTool}
-          onToolChange={setActiveTool}
-          currentMeasurement={currentMeasurement}
-          layerStates={layerStates}
-          onLayerToggle={handleLayerToggle}
-          onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
-          showAsphaltDetector={showAsphaltDetector}
-        />
-        
-        {/* Property Information Panel */}
-        <PropertyPanel
-          isOpen={propertyPanelOpen}
-          onToggle={() => setPropertyPanelOpen(!propertyPanelOpen)}
-          propertyInfo={{
-            parcelId: "Sample-123",
-            owner: "John Doe",
-            address: "123 Main St, Stuart, VA",
-            acreage: 2.5,
-            taxValue: 150000,
-            zoning: "Residential"
-          }}
-        />
+        </Suspense>
       </div>
     </div>
   );

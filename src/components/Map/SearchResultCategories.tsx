@@ -11,6 +11,19 @@ export type SearchCategory =
   | 'administrative'
   | 'commercial';
 
+export interface SearchResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  class?: string;
+  type?: string;
+  addresstype?: string;
+  osm_type?: string;
+  importance?: number;
+  place_rank?: number;
+  [key: string]: unknown;
+}
+
 export interface SearchCategoryConfig {
   id: SearchCategory;
   label: string;
@@ -79,7 +92,7 @@ export const SEARCH_CATEGORIES: SearchCategoryConfig[] = [
   }
 ];
 
-export function getCategoryForResult(result: { class?: string; type?: string }): SearchCategory {
+export function getCategoryForResult(result: SearchResult): SearchCategory {
   const resultClass = result.class?.toLowerCase() || '';
   const resultType = result.type?.toLowerCase() || '';
   
@@ -107,9 +120,9 @@ export function getCategoryConfig(categoryId: SearchCategory): SearchCategoryCon
 }
 
 export function filterResultsByCategory(
-  results: any[], 
+  results: SearchResult[], 
   category: SearchCategory
-): any[] {
+): SearchResult[] {
   if (category === 'all') return results;
   
   return results.filter(result => {
