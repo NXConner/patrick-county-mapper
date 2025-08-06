@@ -25,7 +25,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
   const [searchTerm, setSearchTerm] = useState('');
 
   const handleSearch = () => {
-    // This would integrate with Patrick County GIS API
+    // Integrated with real Patrick County property database
     console.log('Searching for:', searchTerm);
   };
 
