@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import MapServiceDropdown from '@/components/Map/MapServiceDropdown';
 import AddressSearchBar from '@/components/Map/AddressSearchBar';
-import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star } from 'lucide-react';
+import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star, Layers, FileText } from 'lucide-react';
 import { useGpsLocation } from '@/hooks/useGpsLocation';
 
 // Lazy load heavy components
@@ -13,6 +13,7 @@ const PropertyPanel = lazy(() => import('@/components/PropertyInfo/PropertyPanel
 const AsphaltDetector = lazy(() => import('@/components/Map/AsphaltDetector'));
 const EnhancedAsphaltDetector = lazy(() => import('@/components/Map/EnhancedAsphaltDetector'));
 const OverlayManager = lazy(() => import('@/components/Map/OverlayManager'));
+
 const ServiceInfo = lazy(() => import('@/components/ServiceInfo/ServiceInfo'));
 
 const Index = () => {
@@ -29,7 +30,7 @@ const Index = () => {
   });
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
-  const [showEnhancedAsphaltDetector, setShowEnhancedAsphaltDetector] = useState(false);
+
 
   // Map reference for communication with map component
   const mapRef = useRef(null);
@@ -185,26 +186,18 @@ const Index = () => {
             gpsLocation={gpsLocation}
           />
 
-          {/* Overlay Manager */}
-          <OverlayManager
-            ref={overlayManagerRef}
-            map={mapRef.current?.getMap?.() || null}
-            onLayerUpdate={(layers) => {
-              console.log('Overlay layers updated:', layers);
-            }}
-          />
 
-          {/* AI Asphalt Detection */}
           {showAsphaltDetector && (
-            <AsphaltDetector 
+            <EnhancedAsphaltDetector 
               map={mapRef.current?.getMap?.() || null}
               onDetectionComplete={(results) => {
-                console.log('Asphalt detection results:', results);
-                toast.success(`AI analysis complete: ${results.length} surfaces detected`, {
-                  description: "Computer vision analysis finished successfully",
+                setAsphaltResults(results);
+                console.log('Enhanced asphalt detection results:', results);
+                toast.success(`Enhanced AI analysis complete: ${results.length} surfaces detected`, {
+                  description: "Advanced computer vision analysis with measurements and cost estimates",
                   action: {
                     label: "View Results",
-                    onClick: () => console.log("View results")
+                    onClick: () => setShowDocumentExport(true)
                   }
                 });
               }}
@@ -212,22 +205,7 @@ const Index = () => {
             />
           )}
 
-          {/* Enhanced AI Asphalt Detection */}
-          {showEnhancedAsphaltDetector && (
-            <EnhancedAsphaltDetector 
-              map={mapRef.current?.getMap?.() || null}
-              overlayManagerRef={overlayManagerRef}
-              onDetectionComplete={(results) => {
-                console.log('Enhanced asphalt detection results:', results);
-                toast.success(`🚀 Enhanced AI analysis complete: ${results.length} areas detected`, {
-                  description: "Advanced computer vision analysis with auto-classification",
-                  action: {
-                    label: "View Details",
-                    onClick: () => console.log("View enhanced results")
-                  }
-                });
-              }}
-              onClose={() => setShowEnhancedAsphaltDetector(false)}
+
             />
           )}
 
@@ -240,8 +218,7 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
-            onEnhancedAsphaltDetection={() => setShowEnhancedAsphaltDetector(!showEnhancedAsphaltDetector)}
-            showEnhancedAsphaltDetector={showEnhancedAsphaltDetector}
+
           />
           
           {/* Enhanced Property Information Panel */}
