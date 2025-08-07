@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import MapServiceDropdown from '@/components/Map/MapServiceDropdown';
 import AddressSearchBar from '@/components/Map/AddressSearchBar';
-import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star } from 'lucide-react';
+import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star, Layers, FileText } from 'lucide-react';
 import { useGpsLocation } from '@/hooks/useGpsLocation';
 
 // Lazy load heavy components
@@ -11,6 +11,9 @@ const FreeMapContainer = lazy(() => import('@/components/Map/FreeMapContainer'))
 const MeasurementToolbar = lazy(() => import('@/components/Toolbar/MeasurementToolbar'));
 const PropertyPanel = lazy(() => import('@/components/PropertyInfo/PropertyPanel'));
 const AsphaltDetector = lazy(() => import('@/components/Map/AsphaltDetector'));
+const EnhancedAsphaltDetector = lazy(() => import('@/components/Map/EnhancedAsphaltDetector'));
+const OverlayManager = lazy(() => import('@/components/Map/OverlayManager'));
+const DocumentExportService = lazy(() => import('@/components/Map/DocumentExportService'));
 const ServiceInfo = lazy(() => import('@/components/ServiceInfo/ServiceInfo'));
 
 const Index = () => {
@@ -27,6 +30,9 @@ const Index = () => {
   });
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
+  const [showOverlayManager, setShowOverlayManager] = useState(false);
+  const [showDocumentExport, setShowDocumentExport] = useState(false);
+  const [asphaltResults, setAsphaltResults] = useState<any[]>([]);
 
   // Map reference for communication with map component
   const mapRef = useRef(null);
@@ -181,21 +187,47 @@ const Index = () => {
             gpsLocation={gpsLocation}
           />
 
-          {/* AI Asphalt Detection */}
+          {/* Enhanced AI Asphalt Detection */}
           {showAsphaltDetector && (
-            <AsphaltDetector 
+            <EnhancedAsphaltDetector 
               map={mapRef.current?.getMap?.() || null}
               onDetectionComplete={(results) => {
-                console.log('Asphalt detection results:', results);
-                toast.success(`AI analysis complete: ${results.length} surfaces detected`, {
-                  description: "Computer vision analysis finished successfully",
+                setAsphaltResults(results);
+                console.log('Enhanced asphalt detection results:', results);
+                toast.success(`Enhanced AI analysis complete: ${results.length} surfaces detected`, {
+                  description: "Advanced computer vision analysis with measurements and cost estimates",
                   action: {
                     label: "View Results",
-                    onClick: () => console.log("View results")
+                    onClick: () => setShowDocumentExport(true)
                   }
                 });
               }}
               onClose={() => setShowAsphaltDetector(false)}
+            />
+          )}
+
+          {/* Overlay Manager */}
+          {showOverlayManager && (
+            <OverlayManager
+              map={mapRef.current?.getMap?.() || null}
+              onOverlayChange={(overlays) => {
+                console.log('Overlay changes:', overlays);
+              }}
+              onExport={(overlayData) => {
+                console.log('Export overlay data:', overlayData);
+              }}
+            />
+          )}
+
+          {/* Document Export Service */}
+          {showDocumentExport && (
+            <DocumentExportService
+              asphaltResults={asphaltResults}
+              onExport={(format, data) => {
+                console.log('Document export:', format, data);
+                toast.success(`Document exported as ${format.toUpperCase()}`);
+              }}
+              onClose={() => setShowDocumentExport(false)}
             />
           )}
 
@@ -208,6 +240,10 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
+            onOverlayManager={() => setShowOverlayManager(!showOverlayManager)}
+            showOverlayManager={showOverlayManager}
+            onDocumentExport={() => setShowDocumentExport(!showDocumentExport)}
+            showDocumentExport={showDocumentExport}
           />
           
           {/* Enhanced Property Information Panel */}
