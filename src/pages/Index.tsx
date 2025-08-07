@@ -11,6 +11,8 @@ const FreeMapContainer = lazy(() => import('@/components/Map/FreeMapContainer'))
 const MeasurementToolbar = lazy(() => import('@/components/Toolbar/MeasurementToolbar'));
 const PropertyPanel = lazy(() => import('@/components/PropertyInfo/PropertyPanel'));
 const AsphaltDetector = lazy(() => import('@/components/Map/AsphaltDetector'));
+const EnhancedAsphaltDetector = lazy(() => import('@/components/Map/EnhancedAsphaltDetector'));
+const OverlayManager = lazy(() => import('@/components/Map/OverlayManager'));
 const ServiceInfo = lazy(() => import('@/components/ServiceInfo/ServiceInfo'));
 
 const Index = () => {
@@ -27,9 +29,11 @@ const Index = () => {
   });
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
+  const [showEnhancedAsphaltDetector, setShowEnhancedAsphaltDetector] = useState(false);
 
   // Map reference for communication with map component
   const mapRef = useRef(null);
+  const overlayManagerRef = useRef(null);
   
   // GPS location hook
   const { location: gpsLocation, isLoading: gpsLoading, requestLocation, isSupported: gpsSupported } = useGpsLocation(true);
@@ -181,6 +185,15 @@ const Index = () => {
             gpsLocation={gpsLocation}
           />
 
+          {/* Overlay Manager */}
+          <OverlayManager
+            ref={overlayManagerRef}
+            map={mapRef.current?.getMap?.() || null}
+            onLayerUpdate={(layers) => {
+              console.log('Overlay layers updated:', layers);
+            }}
+          />
+
           {/* AI Asphalt Detection */}
           {showAsphaltDetector && (
             <AsphaltDetector 
@@ -199,6 +212,25 @@ const Index = () => {
             />
           )}
 
+          {/* Enhanced AI Asphalt Detection */}
+          {showEnhancedAsphaltDetector && (
+            <EnhancedAsphaltDetector 
+              map={mapRef.current?.getMap?.() || null}
+              overlayManagerRef={overlayManagerRef}
+              onDetectionComplete={(results) => {
+                console.log('Enhanced asphalt detection results:', results);
+                toast.success(`🚀 Enhanced AI analysis complete: ${results.length} areas detected`, {
+                  description: "Advanced computer vision analysis with auto-classification",
+                  action: {
+                    label: "View Details",
+                    onClick: () => console.log("View enhanced results")
+                  }
+                });
+              }}
+              onClose={() => setShowEnhancedAsphaltDetector(false)}
+            />
+          )}
+
           {/* Enhanced Measurement Tools */}
           <MeasurementToolbar
             activeTool={activeTool}
@@ -208,6 +240,8 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
+            onEnhancedAsphaltDetection={() => setShowEnhancedAsphaltDetector(!showEnhancedAsphaltDetector)}
+            showEnhancedAsphaltDetector={showEnhancedAsphaltDetector}
           />
           
           {/* Enhanced Property Information Panel */}

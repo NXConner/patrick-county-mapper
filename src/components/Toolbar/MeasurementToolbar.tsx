@@ -35,6 +35,8 @@ interface MeasurementToolbarProps {
   onLayerToggle?: (layerId: string) => void;
   onAsphaltDetection?: () => void;
   showAsphaltDetector?: boolean;
+  onEnhancedAsphaltDetection?: () => void;
+  showEnhancedAsphaltDetector?: boolean;
 }
 
 const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
@@ -44,7 +46,9 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   layerStates,
   onLayerToggle,
   onAsphaltDetection,
-  showAsphaltDetector
+  showAsphaltDetector,
+  onEnhancedAsphaltDetection,
+  showEnhancedAsphaltDetector
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<'tools' | 'layers' | 'ai' | 'info'>('tools');
@@ -257,6 +261,23 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
             <Zap className="w-4 h-4 mr-2" />
             {showAsphaltDetector ? 'Hide AI Detection' : 'AI Asphalt Detection'}
           </Button>
+
+          <Button
+            onClick={() => {
+              onEnhancedAsphaltDetection?.();
+              setIsMobileMenuOpen(false);
+            }}
+            variant={showEnhancedAsphaltDetector ? "default" : "outline"}
+            size="sm"
+            className={`w-full justify-start h-12 transition-all duration-200 ${
+              showEnhancedAsphaltDetector ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700' : 'btn-secondary-enhanced border-purple-200 hover:border-purple-400'
+            }`}
+          >
+            <div className="w-4 h-4 mr-2 relative">
+              ✨
+            </div>
+            {showEnhancedAsphaltDetector ? 'Hide Enhanced AI' : 'Enhanced AI Analysis'}
+          </Button>
           
           {showAsphaltDetector && (
             <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200/50 dark:border-blue-800/50">
@@ -267,6 +288,24 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
               <p className="text-sm text-muted-foreground">
                 Click "Run AI Detection" to analyze satellite imagery for asphalt surfaces
               </p>
+            </div>
+          )}
+
+          {showEnhancedAsphaltDetector && (
+            <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200/50 dark:border-purple-800/50">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="relative">
+                  <Zap className="w-4 h-4 text-purple-600" />
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                </div>
+                <span className="font-medium text-purple-600">Enhanced AI Active</span>
+              </div>
+              <p className="text-sm text-muted-foreground mb-2">
+                Advanced AI with auto-detection, measurements, and pop-out capabilities
+              </p>
+              <div className="text-xs text-purple-600 bg-purple-100 dark:bg-purple-900/20 px-2 py-1 rounded">
+                🚗 Auto-detects driveways • 🅿️ Parking lots • 📐 Precise measurements
+              </div>
             </div>
           )}
 

@@ -2,6 +2,139 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Enhanced Asphalt Detection Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.pop-out-effect {
+  animation: pulse 2s ease-in-out;
+  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+}
+
+.enhanced-asphalt-popup {
+  border-radius: 12px !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+.enhanced-asphalt-popup .leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.enhanced-asphalt-popup .leaflet-popup-tip {
+  background: #ffffff;
+}
+
+/* Overlay management animations */
+.overlay-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.overlay-fade-out {
+  animation: fadeOut 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+/* Asphalt surface type specific styles */
+.enhanced-asphalt-driveway {
+  stroke-dasharray: none !important;
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.4));
+}
+
+.enhanced-asphalt-parking_lot {
+  stroke-dasharray: none !important;
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
+}
+
+.enhanced-asphalt-road {
+  stroke-dasharray: none !important;
+  filter: drop-shadow(0 0 8px rgba(107, 114, 128, 0.4));
+}
+
+.enhanced-asphalt-path {
+  stroke-dasharray: none !important;
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.4));
+}
+
+/* Loading spinner for enhanced analysis */
+.spinner-enhanced {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(59, 130, 246, 0.3);
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Button enhancements */
+.btn-primary-enhanced {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
+}
+
+.btn-primary-enhanced:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px -1px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary-enhanced {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  transition: all 0.2s ease-in-out;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-secondary-enhanced:hover {
+  background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
 /* Professional GIS Application Design System 
 All colors MUST be HSL for consistent theming.
 Enhanced with striking visual appeal and modern UX patterns.
