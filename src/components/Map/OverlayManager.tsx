@@ -30,7 +30,7 @@ export interface OverlayLayer {
   visible: boolean;
   opacity: number;
   zIndex: number;
-  data?: any;
+  data?: unknown;
   created: Date;
   popOutWindow?: Window | null;
 }
@@ -64,8 +64,9 @@ const OverlayManager = forwardRef<OverlayManagerRef, OverlayManagerProps>(
         layerGroupRef.current.addTo(map);
       }
       return () => {
-        if (map && layerGroupRef.current) {
-          map.removeLayer(layerGroupRef.current);
+        const layerGroup = layerGroupRef.current;
+        if (map && layerGroup) {
+          map.removeLayer(layerGroup);
         }
       };
     }, [map]);
@@ -85,8 +86,8 @@ const OverlayManager = forwardRef<OverlayManagerRef, OverlayManagerProps>(
       sortedLayers.forEach(layer => {
         if (layer.leafletLayer) {
           // Set opacity if the layer supports it
-          if ('setStyle' in layer.leafletLayer) {
-            (layer.leafletLayer as any).setStyle({ 
+          if ('setStyle' in layer.leafletLayer && typeof (layer.leafletLayer as L.Path).setStyle === 'function') {
+            (layer.leafletLayer as L.Path).setStyle({ 
               fillOpacity: layer.opacity * 0.5,
               opacity: layer.opacity 
             });

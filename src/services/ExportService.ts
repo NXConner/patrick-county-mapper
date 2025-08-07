@@ -234,7 +234,7 @@ export class ExportService {
 
   // Helper: Create PDF content
   private static async createPDFContent(
-    pdf: any, 
+    pdf: import('jspdf').jsPDF, 
     data: AsphaltAnalysisData, 
     options: ExportOptions
   ): Promise<void> {

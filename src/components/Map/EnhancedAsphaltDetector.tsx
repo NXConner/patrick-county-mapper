@@ -77,8 +77,9 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
       detectionLayer.current.addTo(map);
     }
     return () => {
-      if (map && detectionLayer.current) {
-        map.removeLayer(detectionLayer.current);
+      const layer = detectionLayer.current;
+      if (map && layer) {
+        map.removeLayer(layer);
       }
     };
   }, [map]);
