@@ -35,6 +35,10 @@ interface MeasurementToolbarProps {
   onLayerToggle?: (layerId: string) => void;
   onAsphaltDetection?: () => void;
   showAsphaltDetector?: boolean;
+  onOverlayManager?: () => void;
+  onDocumentExport?: () => void;
+  showOverlayManager?: boolean;
+  showDocumentExport?: boolean;
 }
 
 const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
@@ -44,7 +48,11 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   layerStates,
   onLayerToggle,
   onAsphaltDetection,
-  showAsphaltDetector
+  showAsphaltDetector,
+  onOverlayManager,
+  onDocumentExport,
+  showOverlayManager,
+  showDocumentExport
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<'tools' | 'layers' | 'ai' | 'info'>('tools');
@@ -255,7 +263,37 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
             }`}
           >
             <Zap className="w-4 h-4 mr-2" />
-            {showAsphaltDetector ? 'Hide AI Detection' : 'AI Asphalt Detection'}
+            {showAsphaltDetector ? 'Hide AI Detection' : 'Enhanced AI Detection'}
+          </Button>
+
+          <Button
+            onClick={() => {
+              onOverlayManager?.();
+              setIsMobileMenuOpen(false);
+            }}
+            variant={showOverlayManager ? "default" : "outline"}
+            size="sm"
+            className={`w-full justify-start h-12 transition-all duration-200 ${
+              showOverlayManager ? 'btn-primary-enhanced' : 'btn-secondary-enhanced'
+            }`}
+          >
+            <Layers className="w-4 h-4 mr-2" />
+            {showOverlayManager ? 'Hide Overlay Manager' : 'Overlay Manager'}
+          </Button>
+
+          <Button
+            onClick={() => {
+              onDocumentExport?.();
+              setIsMobileMenuOpen(false);
+            }}
+            variant={showDocumentExport ? "default" : "outline"}
+            size="sm"
+            className={`w-full justify-start h-12 transition-all duration-200 ${
+              showDocumentExport ? 'btn-primary-enhanced' : 'btn-secondary-enhanced'
+            }`}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            {showDocumentExport ? 'Hide Document Export' : 'Document Export'}
           </Button>
           
           {showAsphaltDetector && (
