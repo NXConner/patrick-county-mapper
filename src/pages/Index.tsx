@@ -13,7 +13,7 @@ const PropertyPanel = lazy(() => import('@/components/PropertyInfo/PropertyPanel
 const AsphaltDetector = lazy(() => import('@/components/Map/AsphaltDetector'));
 const EnhancedAsphaltDetector = lazy(() => import('@/components/Map/EnhancedAsphaltDetector'));
 const OverlayManager = lazy(() => import('@/components/Map/OverlayManager'));
-const DocumentExportService = lazy(() => import('@/components/Map/DocumentExportService'));
+
 const ServiceInfo = lazy(() => import('@/components/ServiceInfo/ServiceInfo'));
 
 const Index = () => {
@@ -30,12 +30,11 @@ const Index = () => {
   });
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
-  const [showOverlayManager, setShowOverlayManager] = useState(false);
-  const [showDocumentExport, setShowDocumentExport] = useState(false);
-  const [asphaltResults, setAsphaltResults] = useState<any[]>([]);
+
 
   // Map reference for communication with map component
   const mapRef = useRef(null);
+  const overlayManagerRef = useRef(null);
   
   // GPS location hook
   const { location: gpsLocation, isLoading: gpsLoading, requestLocation, isSupported: gpsSupported } = useGpsLocation(true);
@@ -187,7 +186,7 @@ const Index = () => {
             gpsLocation={gpsLocation}
           />
 
-          {/* Enhanced AI Asphalt Detection */}
+
           {showAsphaltDetector && (
             <EnhancedAsphaltDetector 
               map={mapRef.current?.getMap?.() || null}
@@ -206,28 +205,7 @@ const Index = () => {
             />
           )}
 
-          {/* Overlay Manager */}
-          {showOverlayManager && (
-            <OverlayManager
-              map={mapRef.current?.getMap?.() || null}
-              onOverlayChange={(overlays) => {
-                console.log('Overlay changes:', overlays);
-              }}
-              onExport={(overlayData) => {
-                console.log('Export overlay data:', overlayData);
-              }}
-            />
-          )}
 
-          {/* Document Export Service */}
-          {showDocumentExport && (
-            <DocumentExportService
-              asphaltResults={asphaltResults}
-              onExport={(format, data) => {
-                console.log('Document export:', format, data);
-                toast.success(`Document exported as ${format.toUpperCase()}`);
-              }}
-              onClose={() => setShowDocumentExport(false)}
             />
           )}
 
@@ -240,10 +218,7 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
-            onOverlayManager={() => setShowOverlayManager(!showOverlayManager)}
-            showOverlayManager={showOverlayManager}
-            onDocumentExport={() => setShowDocumentExport(!showDocumentExport)}
-            showDocumentExport={showDocumentExport}
+
           />
           
           {/* Enhanced Property Information Panel */}
