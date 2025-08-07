@@ -260,52 +260,6 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
             {showAsphaltDetector ? 'Hide AI Detection' : 'Enhanced AI Detection'}
           </Button>
 
-          <Button
-            onClick={() => {
-              onOverlayManager?.();
-              setIsMobileMenuOpen(false);
-            }}
-            variant={showOverlayManager ? "default" : "outline"}
-            size="sm"
-            className={`w-full justify-start h-12 transition-all duration-200 ${
-              showOverlayManager ? 'btn-primary-enhanced' : 'btn-secondary-enhanced'
-            }`}
-          >
-            <Layers className="w-4 h-4 mr-2" />
-            {showOverlayManager ? 'Hide Overlay Manager' : 'Overlay Manager'}
-          </Button>
-
-          <Button
-            onClick={() => {
-              onDocumentExport?.();
-              setIsMobileMenuOpen(false);
-            }}
-            variant={showDocumentExport ? "default" : "outline"}
-            size="sm"
-            className={`w-full justify-start h-12 transition-all duration-200 ${
-              showDocumentExport ? 'btn-primary-enhanced' : 'btn-secondary-enhanced'
-            }`}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            {showDocumentExport ? 'Hide Document Export' : 'Document Export'}
-          </Button>
-
-          <Button
-            onClick={() => {
-              onEnhancedAsphaltDetection?.();
-              setIsMobileMenuOpen(false);
-            }}
-            variant={showEnhancedAsphaltDetector ? "default" : "outline"}
-            size="sm"
-            className={`w-full justify-start h-12 transition-all duration-200 ${
-              showEnhancedAsphaltDetector ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700' : 'btn-secondary-enhanced border-purple-200 hover:border-purple-400'
-            }`}
-          >
-            <div className="w-4 h-4 mr-2 relative">
-              ✨
-            </div>
-            {showEnhancedAsphaltDetector ? 'Hide Enhanced AI' : 'Enhanced AI Analysis'}
-          </Button>
           
           {showAsphaltDetector && (
             <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border border-blue-200/50 dark:border-blue-800/50">
@@ -319,7 +273,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
             </div>
           )}
 
-          {showEnhancedAsphaltDetector && (
+          {showAsphaltDetector && (
             <div className="p-4 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border border-purple-200/50 dark:border-purple-800/50">
               <div className="flex items-center gap-2 mb-2">
                 <div className="relative">

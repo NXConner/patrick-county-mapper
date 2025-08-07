@@ -191,21 +191,12 @@ const Index = () => {
             <EnhancedAsphaltDetector 
               map={mapRef.current?.getMap?.() || null}
               onDetectionComplete={(results) => {
-                setAsphaltResults(results);
                 console.log('Enhanced asphalt detection results:', results);
                 toast.success(`Enhanced AI analysis complete: ${results.length} surfaces detected`, {
-                  description: "Advanced computer vision analysis with measurements and cost estimates",
-                  action: {
-                    label: "View Results",
-                    onClick: () => setShowDocumentExport(true)
-                  }
+                  description: "Advanced computer vision analysis with measurements and cost estimates"
                 });
               }}
               onClose={() => setShowAsphaltDetector(false)}
-            />
-          )}
-
-
             />
           )}
 

@@ -186,7 +186,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
     const lng = parseFloat(result.lon);
     const address = formatAddress(result);
     
-    addToHistory(address, lat, lng);
+    addToHistory({ query: address, address, lat, lng });
     onLocationSelect(lat, lng, address);
     
     setQuery(address);
@@ -217,7 +217,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
     try {
       const position = await getCurrentLocation();
       if (position) {
-        const { latitude, longitude } = position.coords;
+        const { lat: latitude, lng: longitude } = position;
         
         // Reverse geocode to get address
         const response = await fetch(
@@ -228,7 +228,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
           const data = await response.json();
           const address = data.display_name;
           
-          addToHistory(address, latitude, longitude);
+          addToHistory({ query: address, address, lat: latitude, lng: longitude });
           onLocationSelect(latitude, longitude, address);
           setQuery(address);
           setShowResults(false);

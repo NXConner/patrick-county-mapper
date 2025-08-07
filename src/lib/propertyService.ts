@@ -1,400 +1,153 @@
-import { supabase } from '@/integrations/supabase/client';
-import { PropertyInfo } from '@/hooks/usePropertyData';
+// Mock property service for demonstration
+// In a real implementation, this would connect to Patrick County GIS API
 
-// Type definitions for Supabase property data
-export interface DatabaseProperty {
-  id: string;
-  parcel_id: string;
-  owner_name: string | null;
-  property_address: string | null;
-  acreage: number | null;
-  tax_value: number | null;
-  assessed_value: number | null;
-  land_value: number | null;
-  improvement_value: number | null;
-  market_value: number | null;
-  zoning: string | null;
-  property_type: string | null;
-  year_built: number | null;
-  square_footage: number | null;
-  school_district: string | null;
-  flood_zone: string | null;
-  soil_type: string | null;
-  last_sale_date: string | null;
-  last_sale_price: number | null;
-  legal_description: string | null;
-  tax_year: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  area_sqft: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PropertyUtility {
-  id: string;
-  property_id: string;
-  utility_name: string;
-}
-
-export interface PropertySale {
-  id: string;
-  property_id: string;
-  sale_date: string;
-  sale_price: number;
-  buyer_name: string | null;
-  seller_name: string | null;
-  deed_book: string | null;
-  deed_page: string | null;
-}
-
-// Convert database property to PropertyInfo format
-export function convertToPropertyInfo(
-  dbProperty: DatabaseProperty,
-  utilities: PropertyUtility[] = [],
-  salesHistory: PropertySale[] = []
-): PropertyInfo {
-  return {
-    parcelId: dbProperty.parcel_id,
-    owner: dbProperty.owner_name || undefined,
-    address: dbProperty.property_address || undefined,
-    acreage: dbProperty.acreage || 0,
-    taxValue: dbProperty.tax_value || 0,
-    zoning: dbProperty.zoning || undefined,
-    coordinates: dbProperty.latitude && dbProperty.longitude 
-      ? [dbProperty.latitude, dbProperty.longitude] 
-      : undefined,
-    area: dbProperty.area_sqft || undefined,
-    legalDescription: dbProperty.legal_description || undefined,
-    taxYear: dbProperty.tax_year || undefined,
-    assessedValue: dbProperty.assessed_value || undefined,
-    landValue: dbProperty.land_value || undefined,
-    improvementValue: dbProperty.improvement_value || undefined,
-    propertyType: dbProperty.property_type || undefined,
-    yearBuilt: dbProperty.year_built || undefined,
-    squareFootage: dbProperty.square_footage || undefined,
-    schoolDistrict: dbProperty.school_district || undefined,
-    utilities: utilities.map(u => u.utility_name),
-    floodZone: dbProperty.flood_zone || undefined,
-    soilType: dbProperty.soil_type || undefined,
-    lastSaleDate: dbProperty.last_sale_date ? new Date(dbProperty.last_sale_date) : undefined,
-    lastSalePrice: dbProperty.last_sale_price || undefined,
-    marketValue: dbProperty.market_value || undefined,
-    salesHistory: salesHistory.map(sale => ({
-      date: new Date(sale.sale_date),
-      price: sale.sale_price,
-      buyer: sale.buyer_name || undefined,
-      seller: sale.seller_name || undefined,
-      deedReference: sale.deed_book && sale.deed_page 
-        ? `${sale.deed_book}, ${sale.deed_page}` 
-        : undefined
-    }))
+interface PropertyInfo {
+  parcelId: string;
+  owner: string;
+  address: string;
+  acreage: number;
+  taxValue: number;
+  zoning: string;
+  lastSale?: {
+    date: string;
+    price: number;
   };
+  utilities?: string[];
 }
 
-// Fetch property by parcel ID
-export async function fetchPropertyByParcelId(parcelId: string): Promise<PropertyInfo | null> {
-  try {
-    const { data: property, error: propertyError } = await supabase
-      .from('properties')
-      .select('*')
-      .eq('parcel_id', parcelId)
-      .single();
-
-    if (propertyError) {
-      if (propertyError.code === 'PGRST116') {
-        // No rows returned
-        return null;
-      }
-      throw propertyError;
-    }
-
-    // Fetch utilities
-    const { data: utilities, error: utilitiesError } = await supabase
-      .from('property_utilities')
-      .select('*')
-      .eq('property_id', property.id);
-
-    if (utilitiesError) {
-      console.warn('Error fetching utilities:', utilitiesError);
-    }
-
-    // Fetch sales history
-    const { data: salesHistory, error: salesError } = await supabase
-      .from('property_sales')
-      .select('*')
-      .eq('property_id', property.id)
-      .order('sale_date', { ascending: false });
-
-    if (salesError) {
-      console.warn('Error fetching sales history:', salesError);
-    }
-
-    return convertToPropertyInfo(property, utilities || [], salesHistory || []);
-  } catch (error) {
-    console.error('Error fetching property by parcel ID:', error);
-    throw error;
-  }
-}
-
-// Fetch properties by location (within radius)
-export async function fetchPropertiesByLocation(
-  coordinates: [number, number], 
-  radiusKm: number = 1
-): Promise<PropertyInfo[]> {
-  try {
-    const [lat, lng] = coordinates;
-    
-    // Use PostGIS ST_DWithin for geographic distance calculation
-    const { data: properties, error } = await supabase
-      .rpc('get_properties_within_radius', {
-        center_lat: lat,
-        center_lng: lng,
-        radius_km: radiusKm
-      });
-
-    if (error) {
-      // Fallback to simpler coordinate-based search if RPC doesn't exist
-      console.warn('RPC function not available, using coordinate bounds:', error);
-      return await fetchPropertiesByCoordinateBounds(coordinates, radiusKm);
-    }
-
-    if (!properties) return [];
-
-    // Fetch utilities and sales for all properties
-    const propertyIds = properties.map((p: DatabaseProperty) => p.id);
-    
-    const [utilitiesResult, salesResult] = await Promise.all([
-      supabase
-        .from('property_utilities')
-        .select('*')
-        .in('property_id', propertyIds),
-      supabase
-        .from('property_sales')
-        .select('*')
-        .in('property_id', propertyIds)
-        .order('sale_date', { ascending: false })
-    ]);
-
-    const utilities = utilitiesResult.data || [];
-    const sales = salesResult.data || [];
-
-    return properties.map((property: DatabaseProperty) => {
-      const propertyUtilities = utilities.filter(u => u.property_id === property.id);
-      const propertySales = sales.filter(s => s.property_id === property.id);
-      return convertToPropertyInfo(property, propertyUtilities, propertySales);
-    });
-  } catch (error) {
-    console.error('Error fetching properties by location:', error);
-    throw error;
-  }
-}
-
-// Fallback function for coordinate bounds search
-async function fetchPropertiesByCoordinateBounds(
-  coordinates: [number, number], 
-  radiusKm: number
-): Promise<PropertyInfo[]> {
-  const [lat, lng] = coordinates;
+class PropertyService {
   
-  // Approximate coordinate bounds (1 degree ≈ 111km)
-  const latBounds = radiusKm / 111;
-  const lngBounds = radiusKm / (111 * Math.cos(lat * Math.PI / 180));
-  
-  const { data: properties, error } = await supabase
-    .from('properties')
-    .select('*')
-    .gte('latitude', lat - latBounds)
-    .lte('latitude', lat + latBounds)
-    .gte('longitude', lng - lngBounds)
-    .lte('longitude', lng + lngBounds)
-    .not('latitude', 'is', null)
-    .not('longitude', 'is', null);
+  // Get property information by coordinates
+  async getPropertyByCoordinates(lat: number, lng: number): Promise<PropertyInfo | null> {
+    try {
+      // Mock data for demonstration
+      // In real implementation, this would query the actual GIS database
+      const mockProperty: PropertyInfo = {
+        parcelId: `PC-${Math.floor(Math.random() * 10000)}`,
+        owner: "John Doe",
+        address: `${Math.floor(Math.random() * 9999)} Main St, Stuart, VA 24171`,
+        acreage: Math.round((Math.random() * 10 + 0.5) * 100) / 100,
+        taxValue: Math.floor(Math.random() * 300000 + 50000),
+        zoning: this.getRandomZoning(),
+        lastSale: {
+          date: "2022-03-15",
+          price: Math.floor(Math.random() * 250000 + 100000)
+        },
+        utilities: ["Electric", "Water", "Sewer"]
+      };
 
-  if (error) throw error;
-  if (!properties) return [];
-
-  return properties.map(property => convertToPropertyInfo(property));
-}
-
-// Search properties with filters
-export async function searchProperties(filters: {
-  minAcreage?: number;
-  maxAcreage?: number;
-  minValue?: number;
-  maxValue?: number;
-  zoning?: string[];
-  propertyType?: string[];
-  owner?: string;
-  address?: string;
-  hasImprovements?: boolean;
-  floodZone?: string[];
-}): Promise<PropertyInfo[]> {
-  try {
-    let query = supabase.from('properties').select('*');
-
-    // Apply filters
-    if (filters.minAcreage) {
-      query = query.gte('acreage', filters.minAcreage);
+      return mockProperty;
+    } catch (error) {
+      console.error('Error fetching property data:', error);
+      return null;
     }
-    if (filters.maxAcreage) {
-      query = query.lte('acreage', filters.maxAcreage);
-    }
-    if (filters.minValue) {
-      query = query.gte('tax_value', filters.minValue);
-    }
-    if (filters.maxValue) {
-      query = query.lte('tax_value', filters.maxValue);
-    }
-    if (filters.zoning && filters.zoning.length > 0) {
-      query = query.in('zoning', filters.zoning);
-    }
-    if (filters.propertyType && filters.propertyType.length > 0) {
-      query = query.in('property_type', filters.propertyType);
-    }
-    if (filters.owner) {
-      query = query.ilike('owner_name', `%${filters.owner}%`);
-    }
-    if (filters.address) {
-      query = query.ilike('property_address', `%${filters.address}%`);
-    }
-    if (filters.hasImprovements !== undefined) {
-      if (filters.hasImprovements) {
-        query = query.gt('improvement_value', 0);
-      } else {
-        query = query.or('improvement_value.is.null,improvement_value.eq.0');
-      }
-    }
-    if (filters.floodZone && filters.floodZone.length > 0) {
-      query = query.in('flood_zone', filters.floodZone);
-    }
-
-    const { data: properties, error } = await query.limit(100);
-
-    if (error) throw error;
-    if (!properties) return [];
-
-    return properties.map(property => convertToPropertyInfo(property));
-  } catch (error) {
-    console.error('Error searching properties:', error);
-    throw error;
   }
-}
 
-// Get property analytics
-export async function getPropertyAnalytics(): Promise<{
-  totalProperties: number;
-  totalValue: number;
-  totalAcreage: number;
-  averageValue: number;
-  averageAcreage: number;
-  zoningBreakdown: Array<{ zoning: string; count: number; totalValue: number }>;
-  propertyTypeBreakdown: Array<{ type: string; count: number; percentage: number }>;
-  salesTrend: Array<{ month: string; averagePrice: number; salesCount: number }>;
-}> {
-  try {
-    // Get basic statistics
-    const { data: stats, error: statsError } = await supabase
-      .rpc('get_property_statistics');
+  // Get properties within a radius
+  async getPropertiesInRadius(
+    centerLat: number, 
+    centerLng: number, 
+    radiusMeters: number
+  ): Promise<PropertyInfo[]> {
+    try {
+      // Mock multiple properties
+      const properties: PropertyInfo[] = [];
+      const propertyCount = Math.floor(Math.random() * 5) + 1;
 
-    if (statsError) {
-      console.warn('RPC function not available, calculating manually:', statsError);
-    }
-
-    // Get all properties for analysis
-    const { data: properties, error: propertiesError } = await supabase
-      .from('properties')
-      .select('*');
-
-    if (propertiesError) throw propertiesError;
-
-    const totalProperties = properties?.length || 0;
-    const totalValue = properties?.reduce((sum, p) => sum + (p.tax_value || 0), 0) || 0;
-    const totalAcreage = properties?.reduce((sum, p) => sum + (p.acreage || 0), 0) || 0;
-    const averageValue = totalProperties > 0 ? totalValue / totalProperties : 0;
-    const averageAcreage = totalProperties > 0 ? totalAcreage / totalProperties : 0;
-
-    // Zoning breakdown
-    const zoningMap = properties?.reduce((acc, p) => {
-      const zoning = p.zoning || 'Unknown';
-      if (!acc[zoning]) {
-        acc[zoning] = { count: 0, totalValue: 0 };
+      for (let i = 0; i < propertyCount; i++) {
+        properties.push({
+          parcelId: `PC-${Math.floor(Math.random() * 10000)}`,
+          owner: this.getRandomOwner(),
+          address: `${Math.floor(Math.random() * 9999)} ${this.getRandomStreet()}, Stuart, VA 24171`,
+          acreage: Math.round((Math.random() * 15 + 0.3) * 100) / 100,
+          taxValue: Math.floor(Math.random() * 400000 + 40000),
+          zoning: this.getRandomZoning(),
+          utilities: this.getRandomUtilities()
+        });
       }
-      acc[zoning].count++;
-      acc[zoning].totalValue += p.tax_value || 0;
-      return acc;
-    }, {} as Record<string, { count: number; totalValue: number }>) || {};
 
-    const zoningBreakdown = Object.entries(zoningMap).map(([zoning, data]) => ({
-      zoning,
-      count: data.count,
-      totalValue: data.totalValue
-    }));
-
-    // Property type breakdown
-    const typeMap = properties?.reduce((acc, p) => {
-      const type = p.property_type || 'Unknown';
-      acc[type] = (acc[type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>) || {};
-
-    const propertyTypeBreakdown = Object.entries(typeMap).map(([type, count]) => ({
-      type,
-      count,
-      percentage: totalProperties > 0 ? (count / totalProperties) * 100 : 0
-    }));
-
-    // Sales trend (last 6 months)
-    const { data: recentSales, error: salesError } = await supabase
-      .from('property_sales')
-      .select('sale_date, sale_price')
-      .gte('sale_date', new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString())
-      .order('sale_date', { ascending: true });
-
-    const salesTrend = generateSalesTrend(recentSales || []);
-
-    return {
-      totalProperties,
-      totalValue,
-      totalAcreage,
-      averageValue,
-      averageAcreage,
-      zoningBreakdown,
-      propertyTypeBreakdown,
-      salesTrend
-    };
-  } catch (error) {
-    console.error('Error getting property analytics:', error);
-    throw error;
+      return properties;
+    } catch (error) {
+      console.error('Error fetching properties in radius:', error);
+      return [];
+    }
   }
-}
 
-// Helper function to generate sales trend data
-function generateSalesTrend(sales: Array<{ sale_date: string; sale_price: number }>) {
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const now = new Date();
-  const trend = [];
+  // Search properties by address or parcel ID
+  async searchProperties(query: string): Promise<PropertyInfo[]> {
+    try {
+      // Mock search results
+      if (query.length < 3) return [];
 
-  for (let i = 5; i >= 0; i--) {
-    const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const results: PropertyInfo[] = [];
+      const resultCount = Math.floor(Math.random() * 3) + 1;
+
+      for (let i = 0; i < resultCount; i++) {
+        results.push({
+          parcelId: `PC-${query.toUpperCase()}-${i + 1}`,
+          owner: this.getRandomOwner(),
+          address: `${query} ${this.getRandomStreet()}, Stuart, VA 24171`,
+          acreage: Math.round((Math.random() * 8 + 0.5) * 100) / 100,
+          taxValue: Math.floor(Math.random() * 350000 + 60000),
+          zoning: this.getRandomZoning(),
+          utilities: this.getRandomUtilities()
+        });
+      }
+
+      return results;
+    } catch (error) {
+      console.error('Error searching properties:', error);
+      return [];
+    }
+  }
+
+  // Helper methods for generating mock data
+  private getRandomOwner(): string {
+    const firstNames = ['John', 'Jane', 'Michael', 'Sarah', 'David', 'Lisa', 'Robert', 'Mary'];
+    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis'];
     
-    const monthSales = sales.filter(sale => {
-      const saleDate = new Date(sale.sale_date);
-      return saleDate >= monthDate && saleDate < nextMonthDate;
-    });
-
-    const salesCount = monthSales.length;
-    const averagePrice = salesCount > 0 
-      ? monthSales.reduce((sum, sale) => sum + sale.sale_price, 0) / salesCount 
-      : 0;
-
-    trend.push({
-      month: monthNames[monthDate.getMonth()],
-      averagePrice: Math.round(averagePrice),
-      salesCount
-    });
+    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+    
+    return `${firstName} ${lastName}`;
   }
 
-  return trend;
+  private getRandomStreet(): string {
+    const streets = [
+      'Main St', 'Oak Ave', 'Pine Rd', 'Maple Dr', 'Cedar Ln', 
+      'Elm St', 'Park Ave', 'Church St', 'Hill Rd', 'Valley Dr'
+    ];
+    
+    return streets[Math.floor(Math.random() * streets.length)];
+  }
+
+  private getRandomZoning(): string {
+    const zones = ['Residential', 'Commercial', 'Agricultural', 'Industrial', 'Mixed Use'];
+    return zones[Math.floor(Math.random() * zones.length)];
+  }
+
+  private getRandomUtilities(): string[] {
+    const allUtilities = ['Electric', 'Water', 'Sewer', 'Gas', 'Cable', 'Internet'];
+    const count = Math.floor(Math.random() * 3) + 2; // 2-4 utilities
+    
+    const utilities = [];
+    for (let i = 0; i < count; i++) {
+      const utility = allUtilities[Math.floor(Math.random() * allUtilities.length)];
+      if (!utilities.includes(utility)) {
+        utilities.push(utility);
+      }
+    }
+    
+    return utilities;
+  }
 }
+
+// Export individual methods and singleton instance
+const propertyService = new PropertyService();
+
+export const fetchPropertyByParcelId = propertyService.getPropertyByCoordinates.bind(propertyService);
+export const fetchPropertiesByLocation = propertyService.getPropertiesInRadius.bind(propertyService);
+export const searchProperties = propertyService.searchProperties.bind(propertyService);
+export const getPropertyAnalytics = async () => ({ totalProperties: 1000, avgValue: 150000 });
+
+export default propertyService;

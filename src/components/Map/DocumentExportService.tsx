@@ -13,7 +13,7 @@ import {
   Link,
   Send,
   FileImage,
-  FilePdf,
+  FileText as FilePdf,
   FileSpreadsheet,
   FileCode,
   Globe,
