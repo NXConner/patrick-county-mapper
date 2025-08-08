@@ -28,7 +28,7 @@ export class ExportService {
   // Export as PNG image
   static async exportAsPNG(
     data: AsphaltAnalysisData, 
-    options: ExportOptions = {}
+    options: Partial<ExportOptions> = {}
   ): Promise<void> {
     try {
       const canvas = await this.createCanvas(data, {
@@ -53,7 +53,7 @@ export class ExportService {
   // Export as PDF document
   static async exportAsPDF(
     data: AsphaltAnalysisData, 
-    options: ExportOptions = {}
+    options: Partial<ExportOptions> = {}
   ): Promise<void> {
     try {
       // Dynamic import to avoid loading jsPDF unless needed
@@ -80,7 +80,7 @@ export class ExportService {
   // Prepare for email attachment
   static async prepareEmailAttachment(
     data: AsphaltAnalysisData,
-    options: ExportOptions = {}
+    options: Partial<ExportOptions> = {}
   ): Promise<void> {
     try {
       const subject = encodeURIComponent('Asphalt Analysis Report');
@@ -110,7 +110,7 @@ export class ExportService {
   // Print analysis
   static async printAnalysis(
     data: AsphaltAnalysisData,
-    options: ExportOptions = {}
+    options: Partial<ExportOptions> = {}
   ): Promise<void> {
     try {
       const printWindow = window.open('', '_blank');
@@ -141,7 +141,7 @@ export class ExportService {
   // Generate contract integration data
   static async generateContractData(
     data: AsphaltAnalysisData,
-    options: ExportOptions = {}
+    options: Partial<ExportOptions> = {}
   ): Promise<string> {
     try {
       const contractData = {
@@ -175,7 +175,7 @@ export class ExportService {
   // Generate comprehensive report
   static async generateReport(
     data: AsphaltAnalysisData,
-    options: ExportOptions = {}
+    options: Partial<ExportOptions> = {}
   ): Promise<void> {
     try {
       const reportWindow = window.open('', '_blank', 'width=900,height=700');
@@ -236,7 +236,7 @@ export class ExportService {
   private static async createPDFContent(
     pdf: import('jspdf').jsPDF, 
     data: AsphaltAnalysisData, 
-    options: ExportOptions
+    options: Partial<ExportOptions>
   ): Promise<void> {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -354,7 +354,7 @@ This analysis was generated using AI-powered computer vision technology for prec
   // Helper: Generate print content
   private static async generatePrintContent(
     data: AsphaltAnalysisData,
-    options: ExportOptions
+    options: Partial<ExportOptions>
   ): Promise<string> {
     return `
 <!DOCTYPE html>
@@ -483,7 +483,7 @@ This analysis was generated using AI-powered computer vision technology for prec
   // Helper: Generate comprehensive report content
   private static async generateReportContent(
     data: AsphaltAnalysisData,
-    options: ExportOptions
+    options: Partial<ExportOptions>
   ): Promise<string> {
     return `
 <!DOCTYPE html>
