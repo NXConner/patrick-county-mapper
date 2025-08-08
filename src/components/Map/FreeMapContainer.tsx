@@ -37,7 +37,7 @@ interface PropertyInfo {
   area?: number;
 }
 
-interface FreeMapContainerProps {
+export interface FreeMapContainerProps {
   onMeasurement?: (measurement: { distance?: number; area?: number }) => void;
   activeTool?: string;
   mapService?: string;
@@ -49,7 +49,7 @@ interface FreeMapContainerProps {
   gpsLocation?: { latitude: number; longitude: number } | null;
 }
 
-interface FreeMapContainerRef {
+export interface FreeMapContainerRef {
   handleLocationSearch: (lat: number, lng: number, address: string) => void;
   toggleLayer: (layerId: string) => void;
   getLayerStates: () => LayerStates;
@@ -86,6 +86,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const roadsLayer = useRef<L.TileLayer | null>(null);
   const labelsLayer = useRef<L.TileLayer | null>(null);
   const propertyLayer = useRef<L.GeoJSON | null>(null);
+  const overpassAbortController = useRef<AbortController | null>(null);
 
   // Expanded coverage area including all surrounding counties
   const coverageCenter: [number, number] = [36.6837, -80.2876]; // Patrick County center
@@ -181,15 +182,15 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
 
   // Create overlay layers
   const createOverlayLayers = () => {
-    // Roads overlay using CartoDB Positron (roads only) 
-    roadsLayer.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
+    // Roads overlay without labels (Carto light_nolabels)
+    roadsLayer.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png', {
       attribution: '© CARTO, © OpenStreetMap contributors',
       maxZoom: 19,
       opacity: 0.7,
       className: 'roads-overlay'
     });
 
-    // Labels overlay using CartoDB Labels
+    // Labels overlay using CartoDB Labels only
     labelsLayer.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png', {
       attribution: '© CARTO, © OpenStreetMap contributors',
       maxZoom: 19,
@@ -241,8 +242,15 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           } else if (map.current) {
             propertyLayer.current.addTo(map.current);
           }
-        } else if (propertyLayer.current && map.current) {
-          map.current.removeLayer(propertyLayer.current);
+        } else {
+          // If disabling property layer, abort any in-flight Overpass request
+          if (overpassAbortController.current) {
+            overpassAbortController.current.abort();
+            overpassAbortController.current = null;
+          }
+          if (propertyLayer.current && map.current) {
+            map.current.removeLayer(propertyLayer.current);
+          }
         }
         break;
     }
@@ -325,6 +333,13 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     try {
       if (!map.current) return;
       
+      // Abort any previous request
+      if (overpassAbortController.current) {
+        overpassAbortController.current.abort();
+      }
+      overpassAbortController.current = new AbortController();
+      const signal = overpassAbortController.current.signal;
+
       setPropertyLoading(true);
       toast.info('Loading property boundaries...');
 
@@ -347,7 +362,10 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       const overpassUrl = 'https://overpass-api.de/api/interpreter';
       const response = await fetch(overpassUrl, {
         method: 'POST',
-        body: overpassQuery
+        body: overpassQuery,
+        signal,
+        // Safer referrer policy
+        referrerPolicy: 'strict-origin-when-cross-origin'
       });
 
       if (!response.ok) {
@@ -358,8 +376,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       
       // Convert Overpass data to GeoJSON
       const geojsonFeatures = data.elements
-        .filter(element => element.type === 'way' && element.geometry)
-        .map(element => ({
+        .filter((element: any) => element.type === 'way' && element.geometry)
+        .map((element: any) => ({
           type: 'Feature',
           properties: {
             id: element.id,
@@ -369,22 +387,22 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           },
           geometry: {
             type: 'Polygon',
-            coordinates: [element.geometry.map(coord => [coord.lon, coord.lat])]
+            coordinates: [element.geometry.map((coord: any) => [coord.lon, coord.lat])]
           }
         }));
 
       const geojson = {
         type: 'FeatureCollection',
         features: geojsonFeatures
-      };
+      } as GeoJSON.FeatureCollection;
 
       // Remove existing property layer
-      if (propertyLayer.current && map.current.hasLayer(propertyLayer.current)) {
+      if (propertyLayer.current && map.current?.hasLayer(propertyLayer.current)) {
         map.current.removeLayer(propertyLayer.current);
       }
 
       // Create new property layer
-      propertyLayer.current = L.geoJSON(geojson as GeoJSON.FeatureCollection, {
+      propertyLayer.current = L.geoJSON(geojson, {
         style: {
           color: '#ff6b35',
           weight: 2,
@@ -395,7 +413,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           className: 'property-boundary'
         },
         onEachFeature: (feature, layer) => {
-          const props = feature.properties;
+          const props: any = feature.properties;
           const address = props.addr_street && props.addr_housenumber 
             ? `${props.addr_housenumber} ${props.addr_street}`
             : 'Building';
@@ -410,17 +428,22 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         }
       });
 
-      if (layerStates.property) {
+      if (layerStates.property && map.current) {
         propertyLayer.current.addTo(map.current);
       }
 
       toast.success(`Loaded ${geojsonFeatures.length} property boundaries`);
 
-    } catch (error) {
-      console.error('Error loading property boundaries:', error);
-      toast.error('Property boundaries temporarily unavailable');
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        // Silently ignore aborted requests
+      } else {
+        console.error('Error loading property boundaries:', error);
+        toast.error('Property boundaries temporarily unavailable');
+      }
     } finally {
       setPropertyLoading(false);
+      overpassAbortController.current = null;
     }
   };
 
@@ -485,6 +508,10 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     }
 
     return () => {
+      // Abort any in-flight Overpass requests
+      if (overpassAbortController.current) {
+        overpassAbortController.current.abort();
+      }
       if (map.current) {
         map.current.remove();
         map.current = null;

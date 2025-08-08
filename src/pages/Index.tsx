@@ -1,20 +1,21 @@
-import React, { useState, useRef, Suspense, lazy } from 'react';
+import React, { useState, useRef, Suspense, lazy, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import MapServiceDropdown from '@/components/Map/MapServiceDropdown';
 import AddressSearchBar from '@/components/Map/AddressSearchBar';
 import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star, Layers, FileText } from 'lucide-react';
 import { useGpsLocation } from '@/hooks/useGpsLocation';
+import { lazyWithPreload } from '@/lib/lazyWithPreload';
 
 // Lazy load heavy components
-const FreeMapContainer = lazy(() => import('@/components/Map/FreeMapContainer'));
-const MeasurementToolbar = lazy(() => import('@/components/Toolbar/MeasurementToolbar'));
-const PropertyPanel = lazy(() => import('@/components/PropertyInfo/PropertyPanel'));
-const AsphaltDetector = lazy(() => import('@/components/Map/AsphaltDetector'));
-const EnhancedAsphaltDetector = lazy(() => import('@/components/Map/EnhancedAsphaltDetector'));
-const OverlayManager = lazy(() => import('@/components/Map/OverlayManager'));
+const FreeMapContainer = lazyWithPreload(() => import('@/components/Map/FreeMapContainer'));
+const MeasurementToolbar = lazyWithPreload(() => import('@/components/Toolbar/MeasurementToolbar'));
+const PropertyPanel = lazyWithPreload(() => import('@/components/PropertyInfo/PropertyPanel'));
+const AsphaltDetector = lazyWithPreload(() => import('@/components/Map/AsphaltDetector'));
+const EnhancedAsphaltDetector = lazyWithPreload(() => import('@/components/Map/EnhancedAsphaltDetector'));
+const OverlayManager = lazyWithPreload(() => import('@/components/Map/OverlayManager'));
 
-const ServiceInfo = lazy(() => import('@/components/ServiceInfo/ServiceInfo'));
+const ServiceInfo = lazyWithPreload(() => import('@/components/ServiceInfo/ServiceInfo'));
 
 const Index = () => {
   const [activeTool, setActiveTool] = useState('select');
@@ -33,35 +34,52 @@ const Index = () => {
 
 
   // Map reference for communication with map component
-  const mapRef = useRef(null);
-  const overlayManagerRef = useRef(null);
+  const mapRef = useRef<any>(null);
+  const overlayManagerRef = useRef<any>(null);
   
   // GPS location hook
   const { location: gpsLocation, isLoading: gpsLoading, requestLocation, isSupported: gpsSupported } = useGpsLocation(true);
 
-  const handleMeasurement = (measurement: { distance?: number; area?: number }) => {
+  const handleMeasurement = useCallback((measurement: { distance?: number; area?: number }) => {
     setCurrentMeasurement(measurement);
-  };
+  }, []);
 
-  const handleLocationSearch = (lat: number, lng: number, address: string) => {
-    // This will be handled by the map component
+  const handleLocationSearch = useCallback((lat: number, lng: number, address: string) => {
     if (mapRef.current && mapRef.current.handleLocationSearch) {
       mapRef.current.handleLocationSearch(lat, lng, address);
     }
-  };
+  }, []);
 
-  const handleLayerToggle = (layerId: string) => {
-    // Toggle layer in map component
+  const handleLayerToggle = useCallback((layerId: string) => {
     if (mapRef.current && mapRef.current.toggleLayer) {
       mapRef.current.toggleLayer(layerId);
-      
-      // Update local state
       setLayerStates(prev => ({
         ...prev,
         [layerId]: !prev[layerId]
       }));
     }
-  };
+  }, []);
+
+  // Idle preload of heavy components to reduce interaction latency
+  useEffect(() => {
+    const preload = () => {
+      FreeMapContainer.preload();
+      MeasurementToolbar.preload();
+      PropertyPanel.preload();
+      AsphaltDetector.preload();
+      EnhancedAsphaltDetector.preload();
+      OverlayManager.preload();
+      ServiceInfo.preload();
+    };
+
+    if ('requestIdleCallback' in window) {
+      // @ts-expect-error: requestIdleCallback exists in browsers
+      (window as any).requestIdleCallback(preload, { timeout: 2000 });
+    } else {
+      const id = window.setTimeout(preload, 1500);
+      return () => window.clearTimeout(id);
+    }
+  }, []);
 
   return (
     <div className="h-screen w-full flex flex-col bg-gis-satellite safe-area-inset-top safe-area-inset-left safe-area-inset-right">
@@ -176,7 +194,7 @@ const Index = () => {
             ref={mapRef}
             activeTool={activeTool}
             onMeasurement={handleMeasurement}
-            onPropertySelect={(property) => {
+            onPropertySelect={(property: any) => {
               setSelectedProperty(property);
               setPropertyPanelOpen(true);
             }}
