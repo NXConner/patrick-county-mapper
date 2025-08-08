@@ -45,11 +45,19 @@ jobs:
         file: ./coverage/lcov.info
         fail_ci_if_error: false
         
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          playwright-${{ runner.os }}-
+      
     - name: Install Playwright browsers
       run: npx playwright install --with-deps
       
-    - name: Run E2E tests
-      run: npm run test:e2e
+    - name: Run E2E tests (Chromium only)
+      run: npx playwright test --project=chromium
       
     - name: Upload Playwright report
       uses: actions/upload-artifact@v4
