@@ -54,6 +54,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [searchMode, setSearchMode] = useState<'search' | 'history'>('search');
   const [retryCount, setRetryCount] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
   
   const inputRef = useRef<HTMLInputElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -85,6 +86,12 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
     setIsLoading(true);
     setSearchMode('search');
     
+    // Cancel any in-flight request
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    abortRef.current = new AbortController();
+
     try {
       // Enhanced search parameters for better results
       const params = new URLSearchParams({
@@ -100,7 +107,10 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
         namedetails: '1'
       });
 
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`);
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        signal: abortRef.current.signal,
+        referrerPolicy: 'strict-origin-when-cross-origin'
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -110,20 +120,24 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
       setResults(data);
       setRetryCount(0);
       setShowResults(true);
-    } catch (error) {
-      console.error('Search error:', error);
-      
-      if (retryAttempt < 2) {
-        setRetryCount(retryAttempt + 1);
-        setTimeout(() => {
-          searchAddress(searchQuery, retryAttempt + 1);
-        }, 1000 * (retryAttempt + 1));
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        // request was canceled
       } else {
-        toast.error('Search failed. Please try again.', {
-          description: "Unable to connect to search service"
-        });
-        setResults([]);
-        setShowResults(false);
+        console.error('Search error:', error);
+        
+        if (retryAttempt < 2) {
+          setRetryCount(retryAttempt + 1);
+          setTimeout(() => {
+            searchAddress(searchQuery, retryAttempt + 1);
+          }, 1000 * (retryAttempt + 1));
+        } else {
+          toast.error('Search failed. Please try again.', {
+            description: "Unable to connect to search service"
+          });
+          setResults([]);
+          setShowResults(false);
+        }
       }
     } finally {
       setIsLoading(false);
@@ -221,7 +235,8 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
         
         // Reverse geocode to get address
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+          { referrerPolicy: 'strict-origin-when-cross-origin' }
         );
         
         if (response.ok) {
@@ -258,7 +273,7 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
     const address = result.address;
     if (!address) return result.display_name;
     
-    const parts = [];
+    const parts = [] as string[];
     
     if (address.house_number && address.road) {
       parts.push(`${address.house_number} ${address.road}`);
@@ -338,6 +353,9 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
     };
   }, []);
 
