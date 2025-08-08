@@ -1,0 +1,145 @@
+<testsuites id="" name="" tests="10" failures="3" skipped="0" errors="0" time="17.088034">
+<testsuite name="basic-navigation.spec.ts" timestamp="2025-08-08T08:06:26.911Z" hostname="chromium" tests="10" failures="3" skipped="0" time="28.885" errors="0">
+<testcase name="Basic Navigation › should load the homepage successfully" classname="basic-navigation.spec.ts" time="1.631">
+</testcase>
+<testcase name="Basic Navigation › should have working search functionality" classname="basic-navigation.spec.ts" time="4.149">
+</testcase>
+<testcase name="Basic Navigation › should have responsive design for mobile" classname="basic-navigation.spec.ts" time="5.477">
+<failure message="basic-navigation.spec.ts:32:3 should have responsive design for mobile" type="FAILURE">
+<![CDATA[  [chromium] › basic-navigation.spec.ts:32:3 › Basic Navigation › should have responsive design for mobile 
+
+    Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
+
+    Locator: locator('header').or(locator('[data-testid="header"]'))
+    Expected: visible
+    Received: <element(s) not found>
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('header').or(locator('[data-testid="header"]'))
+
+
+      40 |     // Verify mobile-specific elements are visible/hidden appropriately
+      41 |     const header = page.locator('header').or(page.locator('[data-testid="header"]'));
+    > 42 |     await expect(header).toBeVisible();
+         |                          ^
+      43 |   });
+      44 |
+      45 |   test('should load measurement tools', async ({ page }) => {
+        at /workspace/tests/e2e/basic-navigation.spec.ts:42:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../test-results/basic-navigation-Basic-Nav-62b78-esponsive-design-for-mobile-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ../../test-results/basic-navigation-Basic-Nav-62b78-esponsive-design-for-mobile-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../test-results/basic-navigation-Basic-Nav-62b78-esponsive-design-for-mobile-chromium/error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../test-results/basic-navigation-Basic-Nav-62b78-esponsive-design-for-mobile-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|../test-results/basic-navigation-Basic-Nav-62b78-esponsive-design-for-mobile-chromium/video.webm]]
+
+[[ATTACHMENT|../test-results/basic-navigation-Basic-Nav-62b78-esponsive-design-for-mobile-chromium/error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Basic Navigation › should load measurement tools" classname="basic-navigation.spec.ts" time="1.207">
+</testcase>
+<testcase name="Basic Navigation › should handle GPS location request" classname="basic-navigation.spec.ts" time="3.881">
+</testcase>
+<testcase name="Basic Navigation › should display property information panel" classname="basic-navigation.spec.ts" time="1.463">
+</testcase>
+<testcase name="Basic Navigation › should handle map service selection" classname="basic-navigation.spec.ts" time="2.353">
+</testcase>
+<testcase name="Basic Navigation › should be accessible" classname="basic-navigation.spec.ts" time="6.255">
+<failure message="basic-navigation.spec.ts:131:3 should be accessible" type="FAILURE">
+<![CDATA[  [chromium] › basic-navigation.spec.ts:131:3 › Basic Navigation › should be accessible ────────────
+
+    Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
+
+    Locator: locator('main').or(locator('[role="main"]')).first()
+    Expected: visible
+    Received: <element(s) not found>
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('main').or(locator('[role="main"]')).first()
+
+
+      137 |     // Check for basic accessibility features
+      138 |     const mainContent = page.locator('main').or(page.locator('[role="main"]'));
+    > 139 |     await expect(mainContent.first()).toBeVisible();
+          |                                       ^
+      140 |     
+      141 |     // Check that interactive elements are keyboard accessible
+      142 |     const searchInput = page.getByRole('textbox').first();
+        at /workspace/tests/e2e/basic-navigation.spec.ts:139:39
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../test-results/basic-navigation-Basic-Navigation-should-be-accessible-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ../../test-results/basic-navigation-Basic-Navigation-should-be-accessible-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../test-results/basic-navigation-Basic-Navigation-should-be-accessible-chromium/error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../test-results/basic-navigation-Basic-Navigation-should-be-accessible-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|../test-results/basic-navigation-Basic-Navigation-should-be-accessible-chromium/video.webm]]
+
+[[ATTACHMENT|../test-results/basic-navigation-Basic-Navigation-should-be-accessible-chromium/error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Performance › should load within reasonable time" classname="basic-navigation.spec.ts" time="1.168">
+</testcase>
+<testcase name="Performance › should not have console errors" classname="basic-navigation.spec.ts" time="1.301">
+<failure message="basic-navigation.spec.ts:169:3 should not have console errors" type="FAILURE">
+<![CDATA[  [chromium] › basic-navigation.spec.ts:169:3 › Performance › should not have console errors ───────
+
+    Error: expect(received).toHaveLength(expected)
+
+    Expected length: 0
+    Received length: 1
+    Received array:  ["X-Frame-Options may only be set via an HTTP header sent along with a document. It may not be set inside <meta>."]
+
+      187 |     );
+      188 |     
+    > 189 |     expect(significantErrors).toHaveLength(0);
+          |                               ^
+      190 |   });
+      191 | });
+        at /workspace/tests/e2e/basic-navigation.spec.ts:189:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../test-results/basic-navigation-Performance-should-not-have-console-errors-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ../../test-results/basic-navigation-Performance-should-not-have-console-errors-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../test-results/basic-navigation-Performance-should-not-have-console-errors-chromium/error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|../test-results/basic-navigation-Performance-should-not-have-console-errors-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|../test-results/basic-navigation-Performance-should-not-have-console-errors-chromium/video.webm]]
+
+[[ATTACHMENT|../test-results/basic-navigation-Performance-should-not-have-console-errors-chromium/error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>

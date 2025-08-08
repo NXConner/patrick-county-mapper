@@ -59,6 +59,42 @@ interface PropertyStatistics {
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1', '#d084d0'];
 
+// Compute sales trend without React hooks to avoid rules-of-hooks violations
+function computeSalesTrend(properties: PropertyInfo[]): { month: string; averagePrice: number; salesCount: number }[] {
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const now = new Date();
+  const trend: { month: string; averagePrice: number; salesCount: number }[] = [];
+
+  for (let i = 5; i >= 0; i--) {
+    const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+
+    const monthSales: number[] = [];
+    properties.forEach(property => {
+      if (property.salesHistory) {
+        property.salesHistory.forEach(sale => {
+          if (sale.date >= monthDate && sale.date < nextMonthDate) {
+            monthSales.push(sale.price);
+          }
+        });
+      }
+    });
+
+    const salesCount = monthSales.length;
+    const averagePrice = salesCount > 0
+      ? Math.round(monthSales.reduce((sum, price) => sum + price, 0) / salesCount)
+      : 0;
+
+    trend.push({
+      month: monthNames[monthDate.getMonth()],
+      averagePrice,
+      salesCount,
+    });
+  }
+
+  return trend;
+}
+
 const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   properties,
   measurements,
@@ -150,42 +186,8 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       .map(([year, count]) => ({ year: parseInt(year), count }))
       .sort((a, b) => a.year - b.year);
 
-    // Calculate real sales trend from property sales history
-    const salesTrend = useMemo(() => {
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const now = new Date();
-      const trend = [];
-
-      for (let i = 5; i >= 0; i--) {
-        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const nextMonthDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-        
-        // Collect all sales for this month from all properties
-        const monthSales: number[] = [];
-        properties.forEach(property => {
-          if (property.salesHistory) {
-            property.salesHistory.forEach(sale => {
-              if (sale.date >= monthDate && sale.date < nextMonthDate) {
-                monthSales.push(sale.price);
-              }
-            });
-          }
-        });
-
-        const salesCount = monthSales.length;
-        const averagePrice = salesCount > 0 
-          ? Math.round(monthSales.reduce((sum, price) => sum + price, 0) / salesCount)
-          : 0;
-
-        trend.push({
-          month: monthNames[monthDate.getMonth()],
-          averagePrice,
-          salesCount
-        });
-      }
-
-      return trend;
-    }, [properties]);
+    // Sales trend (computed without hooks)
+    const salesTrend = computeSalesTrend(properties);
 
     return {
       totalProperties,

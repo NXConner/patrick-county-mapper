@@ -1,0 +1,91 @@
+# Page snapshot
+
+```yaml
+- region "Notifications (F8)":
+  - list
+- region "Notifications alt+T":
+  - list:
+    - listitem:
+      - img
+      - text: Switched to ESRI World Imagery (Satellite)
+    - listitem:
+      - img
+      - text: Location access denied. Please enable location permissions.
+    - listitem:
+      - img
+      - text: Map loaded with ESRI World Imagery (Satellite)! Covering Patrick County, VA + surrounding areas
+- img
+- heading "Patrick County GIS Pro" [level=1]
+- paragraph: High-resolution mapping & measurement tools
+- text: Live Data
+- img
+- text: Connected
+- img
+- text: AI Ready
+- img
+- textbox "Search addresses, places, or coordinates..."
+- button "Use current location":
+  - img
+- text: Mapping Service
+- combobox:
+  - img
+  - text: ESRI World Imagery FREE
+  - paragraph: High-resolution satellite imagery (FREE)
+- text: ESRI World Imagery
+- paragraph: High-resolution satellite imagery (FREE)
+- link "Learn more":
+  - /url: https://www.esri.com
+  - img
+  - text: Learn more
+- button "Locate Me":
+  - img
+  - text: Locate Me
+- img
+- text: Patrick County, VA +
+- img
+- text: Carroll, Floyd, Franklin, Henry +
+- img
+- text: Stokes & Surry Counties, NC
+- button "Zoom in"
+- button "Zoom out"
+- text: 5 mi
+- link "Leaflet":
+  - /url: https://leafletjs.com
+- text: © Esri, Maxar, Earthstar Geographics, and the GIS User Community, © CARTO, © OpenStreetMap contributors
+- button "Clear all drawings":
+  - img
+- button "Export measurements":
+  - img
+- text: ESRI Satellite FREE
+- paragraph: High-res satellite imagery
+- heading "GIS Tools" [level=2]
+- button:
+  - img
+- button "Tools":
+  - img
+  - text: Tools
+- button "Layers":
+  - img
+  - text: Layers
+- button "AI Tools":
+  - img
+  - text: AI Tools
+- button "Info":
+  - img
+  - text: Info
+- button "Select":
+  - img
+  - text: Select
+- button "Area":
+  - img
+  - text: Area
+- button "Distance":
+  - img
+  - text: Distance
+- button "Point":
+  - img
+  - text: Point
+- button "Property Info":
+  - img
+  - text: Property Info
+```
