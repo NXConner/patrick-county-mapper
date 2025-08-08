@@ -95,16 +95,26 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: vi.fn(),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
+// Mock localStorage with in-memory implementation
+const createLocalStorageMock = () => {
+  let store = new Map<string, string>();
+  return {
+    getItem: vi.fn((key: string) => (store.has(key) ? store.get(key)! : null)),
+    setItem: vi.fn((key: string, value: string) => {
+      store.set(key, value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      store.delete(key);
+    }),
+    clear: vi.fn(() => {
+      store.clear();
+    }),
+  } as unknown as Storage;
 };
 
 Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
+  value: createLocalStorageMock(),
+  configurable: true,
 });
 
 // Mock crypto.randomUUID

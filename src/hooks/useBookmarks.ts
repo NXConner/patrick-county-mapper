@@ -91,47 +91,81 @@ export const useBookmarks = () => {
       lastVisited: undefined
     };
 
-    const updatedBookmarks = [...bookmarks, newBookmark];
-    saveBookmarks(updatedBookmarks);
+    setBookmarks(prev => {
+      const updated = [...prev, newBookmark];
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch (error) {
+        console.error('Failed to save bookmarks:', error);
+        toast.error('Failed to save bookmarks');
+      }
+      return updated;
+    });
+
     toast.success(`Bookmark "${name}" added`);
     return newBookmark;
-  }, [bookmarks, saveBookmarks]);
+  }, []);
 
   // Update bookmark
   const updateBookmark = useCallback((id: string, updates: Partial<Bookmark>) => {
-    const updatedBookmarks = bookmarks.map(bookmark =>
-      bookmark.id === id ? { ...bookmark, ...updates } : bookmark
-    );
-    saveBookmarks(updatedBookmarks);
+    setBookmarks(prev => {
+      const updated = prev.map(bookmark =>
+        bookmark.id === id ? { ...bookmark, ...updates } : bookmark
+      );
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch (error) {
+        console.error('Failed to save bookmarks:', error);
+        toast.error('Failed to save bookmarks');
+      }
+      return updated;
+    });
     toast.success('Bookmark updated');
-  }, [bookmarks, saveBookmarks]);
+  }, []);
 
   // Delete bookmark
   const deleteBookmark = useCallback((id: string) => {
-    const bookmark = bookmarks.find(b => b.id === id);
-    const updatedBookmarks = bookmarks.filter(b => b.id !== id);
-    saveBookmarks(updatedBookmarks);
-    if (bookmark) {
-      toast.success(`Bookmark "${bookmark.name}" deleted`);
+    let deleted: Bookmark | undefined;
+    setBookmarks(prev => {
+      deleted = prev.find(b => b.id === id);
+      const updated = prev.filter(b => b.id !== id);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch (error) {
+        console.error('Failed to save bookmarks:', error);
+        toast.error('Failed to save bookmarks');
+      }
+      return updated;
+    });
+    if (deleted) {
+      toast.success(`Bookmark "${deleted.name}" deleted`);
     }
-  }, [bookmarks, saveBookmarks]);
+  }, []);
 
   // Visit bookmark (updates lastVisited)
   const visitBookmark = useCallback((id: string) => {
-    const updatedBookmarks = bookmarks.map(bookmark =>
-      bookmark.id === id 
-        ? { ...bookmark, lastVisited: new Date() }
-        : bookmark
-    );
-    saveBookmarks(updatedBookmarks);
-  }, [bookmarks, saveBookmarks]);
+    setBookmarks(prev => {
+      const updated = prev.map(bookmark =>
+        bookmark.id === id 
+          ? { ...bookmark, lastVisited: new Date() }
+          : bookmark
+      );
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch (error) {
+        console.error('Failed to save bookmarks:', error);
+        toast.error('Failed to save bookmarks');
+      }
+      return updated;
+    });
+  }, []);
 
   // Search bookmarks
   const searchBookmarks = useCallback((query: string) => {
     const lowercaseQuery = query.toLowerCase();
     return bookmarks.filter(bookmark =>
       bookmark.name.toLowerCase().includes(lowercaseQuery) ||
-      bookmark.description?.toLowerCase().includes(lowercaseQuery) ||
+      ((bookmark.description?.toLowerCase() ?? '').includes(lowercaseQuery)) ||
       bookmark.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery))
     );
   }, [bookmarks]);
@@ -238,8 +272,16 @@ export const useBookmarks = () => {
             lastVisited: bookmark.lastVisited ? new Date(bookmark.lastVisited) : undefined
           }));
 
-        const updatedBookmarks = [...bookmarks, ...validBookmarks];
-        saveBookmarks(updatedBookmarks);
+        setBookmarks(prev => {
+          const updated = [...prev, ...validBookmarks];
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+          } catch (error) {
+            console.error('Failed to save bookmarks:', error);
+            toast.error('Failed to save bookmarks');
+          }
+          return updated;
+        });
         toast.success(`Imported ${validBookmarks.length} bookmarks`);
       } catch (error) {
         console.error('Import error:', error);
@@ -247,7 +289,7 @@ export const useBookmarks = () => {
       }
     };
     reader.readAsText(file);
-  }, [bookmarks, saveBookmarks]);
+  }, []);
 
   return {
     bookmarks,
