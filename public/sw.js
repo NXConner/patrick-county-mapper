@@ -2,9 +2,10 @@ const CACHE_NAME = 'patrick-county-gis-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/src/index.css',
-  '/src/main.tsx',
-  // Add other static assets
+  '/manifest.json',
+  '/favicon.ico',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png',
 ];
 
 // Install event - cache resources
