@@ -42,12 +42,14 @@ export const useBookmarks = () => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
+        const parsed = JSON.parse(stored) as Array<
+          Omit<Bookmark, 'createdAt' | 'lastVisited'> & { createdAt: string; lastVisited?: string }
+        >;
         // Convert date strings back to Date objects
-        const bookmarksWithDates = parsed.map((bookmark: any) => ({
+        const bookmarksWithDates: Bookmark[] = parsed.map((bookmark) => ({
           ...bookmark,
           createdAt: new Date(bookmark.createdAt),
-          lastVisited: bookmark.lastVisited ? new Date(bookmark.lastVisited) : undefined
+          lastVisited: bookmark.lastVisited ? new Date(bookmark.lastVisited) : undefined,
         }));
         setBookmarks(bookmarksWithDates);
       }

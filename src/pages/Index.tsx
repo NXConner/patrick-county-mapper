@@ -6,6 +6,8 @@ import AddressSearchBar from '@/components/Map/AddressSearchBar';
 import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star, Layers, FileText } from 'lucide-react';
 import { useGpsLocation } from '@/hooks/useGpsLocation';
 import { lazyWithPreload } from '@/lib/lazyWithPreload';
+import type { FreeMapContainerRef } from '@/components/Map/FreeMapContainer';
+import type { FreeMapContainerProps } from '@/components/Map/FreeMapContainer';
 
 // Lazy load heavy components
 const FreeMapContainer = lazyWithPreload(() => import('@/components/Map/FreeMapContainer'));
@@ -21,7 +23,7 @@ const Index = () => {
   const [activeTool, setActiveTool] = useState('select');
   const [currentMeasurement, setCurrentMeasurement] = useState<{ distance?: number; area?: number }>();
   const [propertyPanelOpen, setPropertyPanelOpen] = useState(false);
-  const [selectedProperty, setSelectedProperty] = useState(null);
+  const [selectedProperty, setSelectedProperty] = useState<unknown>(null);
   const [selectedMapService, setSelectedMapService] = useState('esri-satellite');
   const [layerStates, setLayerStates] = useState({
     satellite: true,
@@ -32,10 +34,8 @@ const Index = () => {
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
 
-
   // Map reference for communication with map component
-  const mapRef = useRef<any>(null);
-  const overlayManagerRef = useRef<any>(null);
+  const mapRef = useRef<FreeMapContainerRef | null>(null);
   
   // GPS location hook
   const { location: gpsLocation, isLoading: gpsLoading, requestLocation, isSupported: gpsSupported } = useGpsLocation(true);
@@ -73,8 +73,8 @@ const Index = () => {
     };
 
     if ('requestIdleCallback' in window) {
-      // @ts-expect-error: requestIdleCallback exists in browsers
-      (window as any).requestIdleCallback(preload, { timeout: 2000 });
+      (window as Window & { requestIdleCallback?: (cb: IdleRequestCallback, opts?: { timeout?: number }) => number })
+        .requestIdleCallback?.(preload, { timeout: 2000 });
     } else {
       const id = window.setTimeout(preload, 1500);
       return () => window.clearTimeout(id);
@@ -194,7 +194,7 @@ const Index = () => {
             ref={mapRef}
             activeTool={activeTool}
             onMeasurement={handleMeasurement}
-            onPropertySelect={(property: any) => {
+            onPropertySelect={(property) => {
               setSelectedProperty(property);
               setPropertyPanelOpen(true);
             }}
@@ -203,7 +203,6 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             gpsLocation={gpsLocation}
           />
-
 
           {showAsphaltDetector && (
             <EnhancedAsphaltDetector 
@@ -227,7 +226,6 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
-
           />
           
           {/* Enhanced Property Information Panel */}

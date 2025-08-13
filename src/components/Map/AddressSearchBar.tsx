@@ -120,12 +120,14 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
       setResults(data);
       setRetryCount(0);
       setShowResults(true);
-    } catch (error: any) {
-      if (error?.name === 'AbortError') {
+    } catch (error) {
+      const err = error as unknown;
+      // @ts-expect-error: DOMException may not be available in all TS libs
+      const isAbort = (err as { name?: string })?.name === 'AbortError' || (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError');
+      if (isAbort) {
         // request was canceled
       } else {
-        console.error('Search error:', error);
-        
+        console.error('Search error:', err);
         if (retryAttempt < 2) {
           setRetryCount(retryAttempt + 1);
           setTimeout(() => {
