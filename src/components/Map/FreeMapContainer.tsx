@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle, us
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
+import { idbGet, idbSet } from '@/lib/idbCache';
 
 // Fix for default markers in Leaflet
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -351,6 +352,48 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       const north = bounds.getNorth();
       const east = bounds.getEast();
 
+      const cacheKey = `overpass:buildings:${south.toFixed(4)}:${west.toFixed(4)}:${north.toFixed(4)}:${east.toFixed(4)}`;
+      const cached = await idbGet<GeoJSON.FeatureCollection>(cacheKey);
+      if (cached) {
+        // Render from cache
+        if (propertyLayer.current && map.current?.hasLayer(propertyLayer.current)) {
+          map.current.removeLayer(propertyLayer.current);
+        }
+        propertyLayer.current = L.geoJSON(cached, {
+          style: {
+            color: '#ff6b35',
+            weight: 2,
+            opacity: 0.8,
+            fillColor: '#ff6b35',
+            fillOpacity: 0.1,
+            dashArray: '5,5',
+            className: 'property-boundary'
+          },
+          onEachFeature: (
+            feature: GeoJSON.Feature<GeoJSON.Polygon, { id: number | string; building: string; addr_street?: string; addr_housenumber?: string }>,
+            layer
+          ) => {
+            const props = feature.properties;
+            const address = props.addr_street && props.addr_housenumber 
+              ? `${props.addr_housenumber} ${props.addr_street}`
+              : 'Building';
+            layer.bindPopup(`
+              <div class="p-2">
+                <div class="font-semibold text-sm">Property Boundary</div>
+                <div class="text-xs text-gray-600 mt-1">${address}</div>
+                <div class="text-xs text-gray-500">Building ID: ${props.id}</div>
+              </div>
+            `);
+          }
+        });
+        if (layerStates.property && map.current) {
+          propertyLayer.current.addTo(map.current);
+        }
+        toast.success('Loaded property boundaries (cached)');
+        setPropertyLoading(false);
+        return;
+      }
+
       const overpassQuery = `
         [out:json][timeout:25];
         (
@@ -404,6 +447,9 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         type: 'FeatureCollection',
         features: geojsonFeatures
       };
+
+      // Cache for 10 minutes
+      idbSet(cacheKey, geojson, 10 * 60 * 1000).catch(() => {});
 
       // Remove existing property layer
       if (propertyLayer.current && map.current?.hasLayer(propertyLayer.current)) {
@@ -573,6 +619,69 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     }
   }, [gpsLocation, mapLoaded, centerOnGpsLocation]);
 
+  // Long-press to copy coordinates
+  useEffect(() => {
+    if (!map.current) return;
+    let pressTimer: number | null = null;
+
+    const handleMouseDown = (e: L.LeafletMouseEvent) => {
+      if (pressTimer) window.clearTimeout(pressTimer);
+      const latlng = e.latlng;
+      pressTimer = window.setTimeout(async () => {
+        try {
+          await navigator.clipboard.writeText(`${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`);
+          toast.success('Coordinates copied to clipboard');
+        } catch {
+          toast.error('Failed to copy coordinates');
+        }
+      }, 600);
+    };
+    const clearTimer = () => {
+      if (pressTimer) {
+        window.clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    };
+
+    map.current.on('mousedown', handleMouseDown);
+    map.current.on('mouseup', clearTimer);
+    map.current.on('mouseout', clearTimer);
+    map.current.on('dragstart', clearTimer);
+
+    return () => {
+      map.current?.off('mousedown', handleMouseDown);
+      map.current?.off('mouseup', clearTimer);
+      map.current?.off('mouseout', clearTimer);
+      map.current?.off('dragstart', clearTimer);
+    };
+  }, [mapLoaded]);
+
+  const [batterySaver, setBatterySaver] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('battery-saver');
+      if (stored) setBatterySaver(stored === '1');
+    } catch {
+      // ignore persistence errors
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('battery-saver', batterySaver ? '1' : '0');
+    } catch {
+      // ignore persistence errors
+    }
+  }, [batterySaver]);
+
+  useEffect(() => {
+    if (!map.current) return;
+    const opacity = batterySaver ? 0.6 : 0.8;
+    if (labelsLayer.current) labelsLayer.current.setOpacity(opacity);
+    if (roadsLayer.current) roadsLayer.current.setOpacity(batterySaver ? 0.5 : 0.7);
+  }, [batterySaver]);
+
   const clearDrawings = () => {
     if (drawnItems.current) {
       drawnItems.current.clearLayers();
@@ -621,10 +730,22 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
 
   return (
     <div className="relative w-full h-full">
-      <div ref={mapContainer} className="w-full h-full z-10" />
+      <div ref={mapContainer} data-testid="map-container" className="w-full h-full z-10" />
       
       {/* Floating action buttons */}
       <div className="absolute bottom-4 right-4 z-40 flex flex-col gap-2">
+        <button
+          onClick={() => setBatterySaver((v) => !v)}
+          className={`p-2 sm:p-3 rounded-lg shadow-floating transition-fast ${batterySaver ? 'bg-yellow-500 text-black' : 'bg-gis-toolbar text-foreground hover:bg-gis-panel'}`}
+          title="Battery saver mode"
+          data-testid="battery-saver-toggle"
+        >
+          {batterySaver ? (
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11 2v3H7a2 2 0 00-2 2v8a2 2 0 002 2h4v3l6-5-6-5V2z"/></svg>
+          ) : (
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11 2v3H7a2 2 0 00-2 2v8a2 2 0 002 2h4v3l6-5-6-5V2z" opacity=".6"/></svg>
+          )}
+        </button>
         <button
           onClick={clearDrawings}
           className="bg-gis-toolbar hover:bg-gis-panel text-foreground p-2 sm:p-3 rounded-lg shadow-floating transition-fast"
