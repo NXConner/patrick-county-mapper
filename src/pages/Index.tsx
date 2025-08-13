@@ -40,6 +40,25 @@ const Index = () => {
   // GPS location hook
   const { location: gpsLocation, isLoading: gpsLoading, requestLocation, isSupported: gpsSupported } = useGpsLocation(true);
 
+  // Hydrate selected map service from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('selected-map-service');
+      if (stored) setSelectedMapService(stored);
+    } catch {
+      // localStorage not available or blocked; ignore persistence
+    }
+  }, []);
+
+  // Persist selected map service
+  useEffect(() => {
+    try {
+      localStorage.setItem('selected-map-service', selectedMapService);
+    } catch {
+      // localStorage not available or blocked; ignore persistence
+    }
+  }, [selectedMapService]);
+
   const handleMeasurement = useCallback((measurement: { distance?: number; area?: number }) => {
     setCurrentMeasurement(measurement);
   }, []);

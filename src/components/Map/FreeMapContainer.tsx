@@ -237,9 +237,9 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         
       case 'property':
         if (newStates.property) {
-          // Load property boundaries if not already loaded
           if (!propertyLayer.current) {
-            loadPropertyBoundaries();
+            // defer to allow bounds to settle
+            schedulePropertyBoundaryLoad();
           } else if (map.current) {
             propertyLayer.current.addTo(map.current);
           }
@@ -257,7 +257,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     }
 
     toast.success(`${layerId.charAt(0).toUpperCase() + layerId.slice(1)} layer ${newStates[layerId] ? 'enabled' : 'disabled'}`);
-  }, [layerStates, loadPropertyBoundaries]);
+  }, [layerStates, schedulePropertyBoundaryLoad]);
 
   // Expose layer controls to parent components
   useImperativeHandle(ref, () => ({
@@ -457,6 +457,27 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       overpassAbortController.current = null;
     }
   }, [layerStates.property]);
+
+  const loadPropertyBoundariesThrottled = useRef<number | null>(null);
+
+  const schedulePropertyBoundaryLoad = useCallback(() => {
+    if (!layerStates.property || !map.current) return;
+    if (loadPropertyBoundariesThrottled.current) {
+      window.clearTimeout(loadPropertyBoundariesThrottled.current);
+    }
+    loadPropertyBoundariesThrottled.current = window.setTimeout(() => {
+      loadPropertyBoundaries();
+      loadPropertyBoundariesThrottled.current = null;
+    }, 500);
+  }, [layerStates.property, loadPropertyBoundaries]);
+
+  useEffect(() => {
+    if (!map.current) return;
+    map.current.on('moveend', schedulePropertyBoundaryLoad);
+    return () => {
+      map.current?.off('moveend', schedulePropertyBoundaryLoad);
+    };
+  }, [schedulePropertyBoundaryLoad]);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
