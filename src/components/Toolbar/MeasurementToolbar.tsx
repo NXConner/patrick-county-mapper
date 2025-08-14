@@ -51,6 +51,14 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<'tools' | 'layers' | 'ai' | 'info'>('tools');
 
+  type TabId = 'tools' | 'layers' | 'ai' | 'info';
+  const navTabs: { id: TabId; label: string; icon: JSX.Element }[] = [
+    { id: 'tools', label: 'Tools', icon: <MousePointerIcon className="w-4 h-4" /> },
+    { id: 'layers', label: 'Layers', icon: <Layers className="w-4 h-4" /> },
+    { id: 'ai', label: 'AI Tools', icon: <Zap className="w-4 h-4" /> },
+    { id: 'info', label: 'Info', icon: <InfoIcon className="w-4 h-4" /> },
+  ];
+
   const tools = [
     {
       id: 'select',
@@ -136,15 +144,10 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
 
       {/* Navigation Tabs */}
       <div className="flex space-x-1 bg-muted/20 rounded-lg p-1">
-        {[
-          { id: 'tools', label: 'Tools', icon: <MousePointerIcon className="w-4 h-4" /> },
-          { id: 'layers', label: 'Layers', icon: <Layers className="w-4 h-4" /> },
-          { id: 'ai', label: 'AI Tools', icon: <Zap className="w-4 h-4" /> },
-          { id: 'info', label: 'Info', icon: <InfoIcon className="w-4 h-4" /> }
-        ].map((tab) => (
+        {navTabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveSection(tab.id as any)}
+            onClick={() => setActiveSection(tab.id)}
             className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
               activeSection === tab.id
                 ? 'bg-primary text-primary-foreground shadow-sm'

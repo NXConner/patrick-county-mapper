@@ -23,7 +23,6 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Hook for logging/reporting
-    // eslint-disable-next-line no-console
     console.error("Uncaught error:", error, errorInfo);
   }
 

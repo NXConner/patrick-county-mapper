@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
+import { idbGet, idbSet } from '@/lib/idbCache';
 
 // Fix for default markers in Leaflet
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -26,7 +27,7 @@ interface LayerStates {
   property: boolean;
 }
 
-interface PropertyInfo {
+export interface PropertyInfo {
   parcelId: string;
   owner: string;
   address: string;
@@ -67,7 +68,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [currentLayer, setCurrentLayer] = useState<L.TileLayer | null>(null);
+  const currentLayerRef = useRef<L.TileLayer | null>(null);
   const drawnItems = useRef<L.FeatureGroup>(new L.FeatureGroup());
   const searchMarker = useRef<L.Marker | null>(null);
   const gpsMarker = useRef<L.Marker | null>(null);
@@ -89,10 +90,11 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const overpassAbortController = useRef<AbortController | null>(null);
 
   // Expanded coverage area including all surrounding counties
-  const coverageCenter: [number, number] = [36.6837, -80.2876]; // Patrick County center
-  
+  const coverageCenter = useMemo<[number, number]>(() => [36.6837, -80.2876], []); // Patrick County center
+  const initialMapServiceRef = useRef(mapService);
+
   // Center map on GPS location and add/update GPS marker
-  const centerOnGpsLocation = () => {
+  const centerOnGpsLocation = useCallback(() => {
     if (!map.current || !gpsLocation) return;
 
     const { latitude, longitude } = gpsLocation;
@@ -137,10 +139,10 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
 
     // Center map on GPS location with appropriate zoom
     map.current.setView([latitude, longitude], 15);
-  };
+  }, [gpsLocation]);
 
   // Handle location search from address search bar
-  const handleLocationSearch = (lat: number, lng: number, address: string) => {
+  const handleLocationSearch = useCallback((lat: number, lng: number, address: string) => {
     if (!map.current) return;
 
     // Remove previous search marker
@@ -178,10 +180,10 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     if (onLocationSearch) {
       onLocationSearch(lat, lng, address);
     }
-  };
+  }, [onLocationSearch]);
 
   // Create overlay layers
-  const createOverlayLayers = () => {
+  const createOverlayLayers = useCallback(() => {
     // Roads overlay without labels (Carto light_nolabels)
     roadsLayer.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png', {
       attribution: '© CARTO, © OpenStreetMap contributors',
@@ -197,13 +199,13 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       opacity: 0.8,
       className: 'labels-overlay'
     });
-  };
+  }, []);
 
   // Toggle layer visibility
-  const toggleLayer = (layerId: string) => {
+  const toggleLayer = useCallback((layerId: string) => {
     if (!map.current) return;
 
-    const newStates = { ...layerStates, [layerId]: !layerStates[layerId] };
+    const newStates = { ...layerStates, [layerId]: !layerStates[layerId] } as LayerStates;
     setLayerStates(newStates);
 
     switch (layerId) {
@@ -225,20 +227,20 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         
       case 'satellite':
         // Toggle base satellite layer
-        if (currentLayer) {
+        if (currentLayerRef.current) {
           if (newStates.satellite) {
-            currentLayer.setOpacity(1);
+            currentLayerRef.current.setOpacity(1);
           } else {
-            currentLayer.setOpacity(0.3);
+            currentLayerRef.current.setOpacity(0.3);
           }
         }
         break;
         
       case 'property':
         if (newStates.property) {
-          // Load property boundaries if not already loaded
           if (!propertyLayer.current) {
-            loadPropertyBoundaries();
+            // defer to allow bounds to settle
+            schedulePropertyBoundaryLoad();
           } else if (map.current) {
             propertyLayer.current.addTo(map.current);
           }
@@ -256,7 +258,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     }
 
     toast.success(`${layerId.charAt(0).toUpperCase() + layerId.slice(1)} layer ${newStates[layerId] ? 'enabled' : 'disabled'}`);
-  };
+  }, [layerStates, schedulePropertyBoundaryLoad]);
 
   // Expose layer controls to parent components
   useImperativeHandle(ref, () => ({
@@ -265,13 +267,13 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     getLayerStates: () => layerStates,
     getMap: () => map.current,
     centerOnGpsLocation
-  }), [layerStates, gpsLocation]);
+  }), [handleLocationSearch, toggleLayer, centerOnGpsLocation, layerStates]);
 
   // Patrick County, VA coordinates
   const patrickCountyCenter: [number, number] = [36.6837, -80.2876];
 
   // Map tile providers
-  const getTileLayer = (serviceId: string): L.TileLayer => {
+  const getTileLayer = useCallback((serviceId: string): L.TileLayer => {
     const providers: Record<string, { url: string; attribution: string; maxZoom?: number }> = {
       'esri-satellite': {
         url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -326,10 +328,10 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       attribution: provider.attribution,
       maxZoom: provider.maxZoom || 18
     });
-  };
+  }, []);
 
   // Load property boundaries (building footprints as property indicators)
-  const loadPropertyBoundaries = async () => {
+  const loadPropertyBoundaries = useCallback(async () => {
     try {
       if (!map.current) return;
       
@@ -349,6 +351,48 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       const west = bounds.getWest();
       const north = bounds.getNorth();
       const east = bounds.getEast();
+
+      const cacheKey = `overpass:buildings:${south.toFixed(4)}:${west.toFixed(4)}:${north.toFixed(4)}:${east.toFixed(4)}`;
+      const cached = await idbGet<GeoJSON.FeatureCollection>(cacheKey);
+      if (cached) {
+        // Render from cache
+        if (propertyLayer.current && map.current?.hasLayer(propertyLayer.current)) {
+          map.current.removeLayer(propertyLayer.current);
+        }
+        propertyLayer.current = L.geoJSON(cached, {
+          style: {
+            color: '#ff6b35',
+            weight: 2,
+            opacity: 0.8,
+            fillColor: '#ff6b35',
+            fillOpacity: 0.1,
+            dashArray: '5,5',
+            className: 'property-boundary'
+          },
+          onEachFeature: (
+            feature: GeoJSON.Feature<GeoJSON.Polygon, { id: number | string; building: string; addr_street?: string; addr_housenumber?: string }>,
+            layer
+          ) => {
+            const props = feature.properties;
+            const address = props.addr_street && props.addr_housenumber 
+              ? `${props.addr_housenumber} ${props.addr_street}`
+              : 'Building';
+            layer.bindPopup(`
+              <div class="p-2">
+                <div class="font-semibold text-sm">Property Boundary</div>
+                <div class="text-xs text-gray-600 mt-1">${address}</div>
+                <div class="text-xs text-gray-500">Building ID: ${props.id}</div>
+              </div>
+            `);
+          }
+        });
+        if (layerStates.property && map.current) {
+          propertyLayer.current.addTo(map.current);
+        }
+        toast.success('Loaded property boundaries (cached)');
+        setPropertyLoading(false);
+        return;
+      }
 
       const overpassQuery = `
         [out:json][timeout:25];
@@ -372,13 +416,21 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         throw new Error('Property data service unavailable');
       }
 
-      const data = await response.json();
+      type OverpassPoint = { lat: number; lon: number };
+      type OverpassElement = {
+        type: 'way' | 'relation' | string;
+        id: number | string;
+        geometry?: OverpassPoint[];
+        tags?: Record<string, string>;
+      };
+
+      const data = (await response.json()) as { elements: OverpassElement[] };
       
       // Convert Overpass data to GeoJSON
       const geojsonFeatures = data.elements
-        .filter((element: any) => element.type === 'way' && element.geometry)
-        .map((element: any) => ({
-          type: 'Feature',
+        .filter((element): element is OverpassElement & { type: 'way'; geometry: OverpassPoint[] } => element.type === 'way' && Array.isArray(element.geometry))
+        .map((element) => ({
+          type: 'Feature' as const,
           properties: {
             id: element.id,
             building: element.tags?.building || 'yes',
@@ -386,15 +438,18 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
             addr_housenumber: element.tags?.['addr:housenumber']
           },
           geometry: {
-            type: 'Polygon',
-            coordinates: [element.geometry.map((coord: any) => [coord.lon, coord.lat])]
+            type: 'Polygon' as const,
+            coordinates: [element.geometry.map((coord) => [coord.lon, coord.lat] as [number, number])]
           }
         }));
 
-      const geojson = {
+      const geojson: GeoJSON.FeatureCollection<GeoJSON.Polygon, { id: number | string; building: string; addr_street?: string; addr_housenumber?: string }> = {
         type: 'FeatureCollection',
         features: geojsonFeatures
-      } as GeoJSON.FeatureCollection;
+      };
+
+      // Cache for 10 minutes
+      idbSet(cacheKey, geojson, 10 * 60 * 1000).catch(() => {});
 
       // Remove existing property layer
       if (propertyLayer.current && map.current?.hasLayer(propertyLayer.current)) {
@@ -412,8 +467,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           dashArray: '5,5',
           className: 'property-boundary'
         },
-        onEachFeature: (feature, layer) => {
-          const props: any = feature.properties;
+        onEachFeature: (feature: GeoJSON.Feature<GeoJSON.Polygon, { id: number | string; building: string; addr_street?: string; addr_housenumber?: string }>, layer) => {
+          const props = feature.properties;
           const address = props.addr_street && props.addr_housenumber 
             ? `${props.addr_housenumber} ${props.addr_street}`
             : 'Building';
@@ -434,18 +489,41 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
 
       toast.success(`Loaded ${geojsonFeatures.length} property boundaries`);
 
-    } catch (error: any) {
-      if (error?.name === 'AbortError') {
-        // Silently ignore aborted requests
-      } else {
-        console.error('Error loading property boundaries:', error);
+    } catch (error) {
+      const err = error as unknown;
+      // ignore aborted requests silently
+      // @ts-expect-error: DOMException may not be available in all TS libs
+      const isAbort = (err as { name?: string })?.name === 'AbortError' || (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError');
+      if (!isAbort) {
+        console.error('Error loading property boundaries:', err);
         toast.error('Property boundaries temporarily unavailable');
       }
     } finally {
       setPropertyLoading(false);
       overpassAbortController.current = null;
     }
-  };
+  }, [layerStates.property]);
+
+  const loadPropertyBoundariesThrottled = useRef<number | null>(null);
+
+  const schedulePropertyBoundaryLoad = useCallback(() => {
+    if (!layerStates.property || !map.current) return;
+    if (loadPropertyBoundariesThrottled.current) {
+      window.clearTimeout(loadPropertyBoundariesThrottled.current);
+    }
+    loadPropertyBoundariesThrottled.current = window.setTimeout(() => {
+      loadPropertyBoundaries();
+      loadPropertyBoundariesThrottled.current = null;
+    }, 500);
+  }, [layerStates.property, loadPropertyBoundaries]);
+
+  useEffect(() => {
+    if (!map.current) return;
+    map.current.on('moveend', schedulePropertyBoundaryLoad);
+    return () => {
+      map.current?.off('moveend', schedulePropertyBoundaryLoad);
+    };
+  }, [schedulePropertyBoundaryLoad]);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -464,9 +542,9 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     });
 
     // Add initial tile layer
-    const initialLayer = getTileLayer(mapService);
+    const initialLayer = getTileLayer(initialMapServiceRef.current);
     initialLayer.addTo(map.current);
-    setCurrentLayer(initialLayer);
+    currentLayerRef.current = initialLayer;
 
     // Add drawn items layer
     drawnItems.current.addTo(map.current);
@@ -475,10 +553,10 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     createOverlayLayers();
     
     // Add initial overlay layers based on state
-    if (layerStates.roads && roadsLayer.current) {
+    if (roadsLayer.current) {
       roadsLayer.current.addTo(map.current);
     }
-    if (layerStates.labels && labelsLayer.current) {
+    if (labelsLayer.current) {
       labelsLayer.current.addTo(map.current);
     }
 
@@ -502,9 +580,9 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     // Add GPS marker if GPS location is available
     if (gpsLocation) {
       centerOnGpsLocation();
-      toast.success(`Map loaded with your current location using ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}`);
+      toast.success(`Map loaded with your current location using ${initialMapServiceRef.current === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : initialMapServiceRef.current}`);
     } else {
-      toast.success(`Map loaded with ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}! Covering Patrick County, VA + surrounding areas`);
+      toast.success(`Map loaded with ${initialMapServiceRef.current === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : initialMapServiceRef.current}! Covering Patrick County, VA + surrounding areas`);
     }
 
     return () => {
@@ -517,29 +595,92 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         map.current = null;
       }
     };
-  }, [gpsLocation]);
+  }, [gpsLocation, coverageCenter, getTileLayer, createOverlayLayers, centerOnGpsLocation]);
 
   // Update tile layer when map service changes
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
 
-    if (currentLayer) {
-      map.current.removeLayer(currentLayer);
+    if (currentLayerRef.current) {
+      map.current.removeLayer(currentLayerRef.current);
     }
 
     const newLayer = getTileLayer(mapService);
     newLayer.addTo(map.current);
-    setCurrentLayer(newLayer);
+    currentLayerRef.current = newLayer;
 
     toast.success(`Switched to ${mapService === 'esri-satellite' ? 'ESRI World Imagery (Satellite)' : mapService}`);
-  }, [mapService, mapLoaded]);
+  }, [mapService, mapLoaded, getTileLayer]);
 
   // Update GPS marker when GPS location changes
   useEffect(() => {
     if (mapLoaded && gpsLocation) {
       centerOnGpsLocation();
     }
-  }, [gpsLocation, mapLoaded]);
+  }, [gpsLocation, mapLoaded, centerOnGpsLocation]);
+
+  // Long-press to copy coordinates
+  useEffect(() => {
+    if (!map.current) return;
+    let pressTimer: number | null = null;
+
+    const handleMouseDown = (e: L.LeafletMouseEvent) => {
+      if (pressTimer) window.clearTimeout(pressTimer);
+      const latlng = e.latlng;
+      pressTimer = window.setTimeout(async () => {
+        try {
+          await navigator.clipboard.writeText(`${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`);
+          toast.success('Coordinates copied to clipboard');
+        } catch {
+          toast.error('Failed to copy coordinates');
+        }
+      }, 600);
+    };
+    const clearTimer = () => {
+      if (pressTimer) {
+        window.clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    };
+
+    map.current.on('mousedown', handleMouseDown);
+    map.current.on('mouseup', clearTimer);
+    map.current.on('mouseout', clearTimer);
+    map.current.on('dragstart', clearTimer);
+
+    return () => {
+      map.current?.off('mousedown', handleMouseDown);
+      map.current?.off('mouseup', clearTimer);
+      map.current?.off('mouseout', clearTimer);
+      map.current?.off('dragstart', clearTimer);
+    };
+  }, [mapLoaded]);
+
+  const [batterySaver, setBatterySaver] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('battery-saver');
+      if (stored) setBatterySaver(stored === '1');
+    } catch {
+      // ignore persistence errors
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('battery-saver', batterySaver ? '1' : '0');
+    } catch {
+      // ignore persistence errors
+    }
+  }, [batterySaver]);
+
+  useEffect(() => {
+    if (!map.current) return;
+    const opacity = batterySaver ? 0.6 : 0.8;
+    if (labelsLayer.current) labelsLayer.current.setOpacity(opacity);
+    if (roadsLayer.current) roadsLayer.current.setOpacity(batterySaver ? 0.5 : 0.7);
+  }, [batterySaver]);
 
   const clearDrawings = () => {
     if (drawnItems.current) {
@@ -589,10 +730,22 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
 
   return (
     <div className="relative w-full h-full">
-      <div ref={mapContainer} className="w-full h-full z-10" />
+      <div ref={mapContainer} data-testid="map-container" className="w-full h-full z-10" />
       
       {/* Floating action buttons */}
       <div className="absolute bottom-4 right-4 z-40 flex flex-col gap-2">
+        <button
+          onClick={() => setBatterySaver((v) => !v)}
+          className={`p-2 sm:p-3 rounded-lg shadow-floating transition-fast ${batterySaver ? 'bg-yellow-500 text-black' : 'bg-gis-toolbar text-foreground hover:bg-gis-panel'}`}
+          title="Battery saver mode"
+          data-testid="battery-saver-toggle"
+        >
+          {batterySaver ? (
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11 2v3H7a2 2 0 00-2 2v8a2 2 0 002 2h4v3l6-5-6-5V2z"/></svg>
+          ) : (
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M11 2v3H7a2 2 0 00-2 2v8a2 2 0 002 2h4v3l6-5-6-5V2z" opacity=".6"/></svg>
+          )}
+        </button>
         <button
           onClick={clearDrawings}
           className="bg-gis-toolbar hover:bg-gis-panel text-foreground p-2 sm:p-3 rounded-lg shadow-floating transition-fast"
@@ -634,3 +787,4 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
 });
 
 export default FreeMapContainer;
+export type { LayerStates };

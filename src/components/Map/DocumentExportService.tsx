@@ -31,18 +31,20 @@ import { toast } from 'sonner';
 import { AsphaltRegion } from './ComputerVisionService';
 
 interface DocumentExportServiceProps {
-  overlayData?: any;
+  overlayData?: unknown;
   asphaltResults?: AsphaltRegion[];
-  onExport?: (format: string, data: any) => void;
+  onExport?: (format: Format, data: unknown) => void;
   onClose?: () => void;
 }
+
+type Format = 'png' | 'pdf' | 'docx' | 'xlsx' | 'json' | 'svg';
 
 interface ExportTemplate {
   id: string;
   name: string;
   description: string;
   icon: React.ReactNode;
-  formats: string[];
+  formats: Format[];
   category: 'email' | 'contract' | 'report' | 'visualization';
 }
 
@@ -53,7 +55,7 @@ const DocumentExportService: React.FC<DocumentExportServiceProps> = ({
   onClose
 }) => {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [exportFormat, setExportFormat] = useState<'png' | 'pdf' | 'docx' | 'xlsx' | 'json'>('png');
+  const [exportFormat, setExportFormat] = useState<Format>('png');
   const [emailRecipient, setEmailRecipient] = useState('');
   const [emailSubject, setEmailSubject] = useState('Asphalt Detection Report');
   const [emailMessage, setEmailMessage] = useState('');
@@ -373,7 +375,7 @@ Date: ______________________
     setSelectedTemplate(templateId);
     const template = exportTemplates.find(t => t.id === templateId);
     if (template) {
-      setExportFormat(template.formats[0] as any);
+      setExportFormat(template.formats[0]);
     }
   };
 

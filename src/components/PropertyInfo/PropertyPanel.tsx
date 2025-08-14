@@ -43,6 +43,14 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'search' | 'details' | 'sources' | 'actions'>('search');
 
+  type PanelTabId = 'search' | 'details' | 'sources' | 'actions';
+  const panelTabs: { id: PanelTabId; label: string; icon: JSX.Element }[] = [
+    { id: 'search', label: 'Search', icon: <Search className="w-4 h-4" /> },
+    { id: 'details', label: 'Details', icon: <Info className="w-4 h-4" /> },
+    { id: 'sources', label: 'Sources', icon: <Database className="w-4 h-4" /> },
+    { id: 'actions', label: 'Actions', icon: <Settings className="w-4 h-4" /> },
+  ];
+
   const handleSearch = () => {
     // Integrated with real Patrick County property database
     console.log('Searching for:', searchTerm);
@@ -69,15 +77,10 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
 
       {/* Navigation Tabs */}
       <div className="flex space-x-1 bg-muted/20 rounded-lg p-1">
-        {[
-          { id: 'search', label: 'Search', icon: <Search className="w-4 h-4" /> },
-          { id: 'details', label: 'Details', icon: <Info className="w-4 h-4" /> },
-          { id: 'sources', label: 'Sources', icon: <Database className="w-4 h-4" /> },
-          { id: 'actions', label: 'Actions', icon: <Settings className="w-4 h-4" /> }
-        ].map((tab) => (
+        {panelTabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
               activeTab === tab.id
                 ? 'bg-primary text-primary-foreground shadow-sm'
