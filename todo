@@ -1,0 +1,55 @@
+Patrick County GIS Pro - To-Do
+
+1) County Parcel Endpoints (Blocking)
+   - Gather official parcel service URLs for:
+     - Henry County, VA (ArcGIS REST FeatureServer/MapServer, or WMS)
+     - Stokes County, NC (ArcGIS REST or WMS)
+     - Surry County, NC (ArcGIS REST or WMS)
+   - Add to src/data/countySources.ts under parcelEndpoint
+   - Verify CORS and public access; note any API keys/licensing
+
+2) Wire Parcel Overlays (Finalization)
+   - Confirm parcels render correctly for each county
+   - Style layers (stroke/fill, hover/click behavior)
+   - Bind popups to parcel attributes (owner, parcel id) if provided
+   - Add loading indicators and error handling per county
+
+3) External GIS Links (Verification)
+   - Validate links for Henry, Stokes, Surry portals
+   - Replace placeholder Stokes link with official GIS portal
+   - Add direct “Property Search/Parcel Viewer” links where available
+
+4) UX and Copy Updates
+   - MeasurementToolbar Info: ensure copy lists service coverage + links
+   - PropertyPanel Sources: ensure Henry, Stokes, Surry cards link out
+   - Add brief tooltip/help for County Parcels toggle
+
+5) Map Bounds & Center
+   - Confirm max bounds fully cover Patrick + Henry + Stokes + Surry
+   - Adjust bounds if parcels extend beyond current bbox
+
+6) Performance & Caching
+   - Add per-county parcel layer throttling/debouncing on moveend
+   - Implement tile/request caching if county services allow
+   - Failover behavior if a county service is down
+
+7) Testing
+   - Add e2e tests for toggling County Parcels and link presence
+   - Snapshot tests for toolbar info sections
+   - Manual QA across desktop/mobile
+
+8) Documentation
+   - Update README coverage section to list Henry (VA), Stokes & Surry (NC)
+   - Document how to add more counties via src/data/countySources.ts
+   - Note dependency on esri-leaflet and WMS support
+
+9) Optional Enhancements
+   - Add county-specific toggles (enable/disable per county)
+   - Add legend for parcel symbology
+   - Deep links to county parcel portals with selected parcel id
+
+10) Deployment
+   - Build and smoke test production bundle
+   - Validate external links and parcel layers in production
+   - Monitor console for CORS/errors; adjust configs if needed
+
