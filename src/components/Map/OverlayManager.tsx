@@ -25,7 +25,8 @@ const OverlayManager: React.FC<OverlayManagerProps> = ({
     { id: 'satellite', name: 'Satellite', icon: '🛰️' },
     { id: 'roads', name: 'Roads', icon: '🛣️' },
     { id: 'labels', name: 'Labels', icon: '🏷️' },
-    { id: 'property', name: 'Property Lines', icon: '📐' }
+    { id: 'property', name: 'Property Lines', icon: '📐' },
+    { id: 'parcels', name: 'County Parcels', icon: '🧭' }
   ];
 
   return (

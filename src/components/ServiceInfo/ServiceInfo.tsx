@@ -11,6 +11,9 @@ const ServiceInfo: React.FC<ServiceInfoProps> = ({ className = "" }) => {
         <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></div>
         <span>Service Information</span>
       </div>
+      <div className="mt-1">
+        <span>Serving Patrick County, VA; Henry County, VA; Stokes & Surry, NC</span>
+      </div>
     </div>
   );
 };

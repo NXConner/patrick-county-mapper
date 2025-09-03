@@ -19,8 +19,10 @@ import {
   Target,
   BarChart3,
   Download,
-  Share2
+  Share2,
+  ExternalLink
 } from 'lucide-react';
+import { COUNTY_SOURCES } from '@/data/countySources';
 
 interface MeasurementToolbarProps {
   activeTool: string;
@@ -123,6 +125,14 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
       active: layerStates?.property ?? false,
       description: 'Building outlines and property boundaries',
       color: 'bg-red-500/20 text-red-600 border-red-500/30'
+    },
+    {
+      id: 'parcels',
+      name: 'County Parcels',
+      icon: <RulerIcon className="w-4 h-4" />,
+      active: (layerStates as any)?.parcels ?? false,
+      description: 'Official county parcel overlays (if available)',
+      color: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30'
     }
   ];
 
@@ -329,6 +339,24 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                 <div className="font-medium text-foreground mb-1">North Carolina Counties:</div>
                 <div>• Stokes & Surry Counties</div>
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">External GIS Portals</h4>
+            <div className="space-y-2">
+              {COUNTY_SOURCES.map((c) => (
+                <a
+                  key={c.id}
+                  href={c.portalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-2 rounded-lg bg-muted/20 hover:bg-muted/30 transition"
+                >
+                  <span className="text-sm text-foreground">{c.name}, {c.state}</span>
+                  <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                </a>
+              ))}
             </div>
           </div>
 

@@ -186,6 +186,11 @@ const Index = () => {
                   <Globe className="w-3 h-3" />
                   <span>Stokes & Surry Counties, NC</span>
                 </div>
+                <span>+</span>
+                <div className="flex items-center gap-1">
+                  <MapPinIcon className="w-3 h-3" />
+                  <span>VA–NC line (Rt 8 / Salem Hwy)</span>
+                </div>
               </div>
             </div>
           </div>
