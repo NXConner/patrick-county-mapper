@@ -249,6 +249,13 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
               </div>
               <p className="text-xs text-muted-foreground">Regional property boundaries</p>
             </div>
+            <div className="p-3 rounded-lg bg-muted/20 border border-blue-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                <span className="font-medium text-foreground">Henry County GIS (VA)</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Cross-border property information</p>
+            </div>
           </div>
 
           <div className="space-y-3">
