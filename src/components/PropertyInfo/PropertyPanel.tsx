@@ -21,8 +21,10 @@ import {
   Globe,
   Settings,
   BarChart3,
-  Layers
+  Layers,
+  ExternalLink
 } from 'lucide-react';
+import { COUNTY_SOURCES } from '@/data/countySources';
 
 interface PropertyInfo {
   parcelId?: string;
@@ -273,6 +275,25 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
                 <span className="text-muted-foreground">Coverage:</span>
                 <span className="font-medium text-foreground">100%</span>
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-foreground">External County GIS Links</h4>
+            <div className="grid grid-cols-1 gap-2">
+              {COUNTY_SOURCES.map((c) => (
+                <a
+                  key={c.id}
+                  href={c.portalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between p-2 rounded-lg bg-muted/20 hover:bg-muted/30 transition"
+                  title={c.portalUrl || ''}
+                >
+                  <span className="text-sm text-foreground">{c.name}, {c.state}</span>
+                  <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                </a>
+              ))}
             </div>
           </div>
         </div>

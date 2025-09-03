@@ -3,6 +3,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
 import { idbGet, idbSet } from '@/lib/idbCache';
+import 'esri-leaflet/dist/esri-leaflet';
+import { COUNTY_SOURCES } from '@/data/countySources';
 
 // Fix for default markers in Leaflet
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -25,6 +27,7 @@ interface LayerStates {
   roads: boolean;
   labels: boolean;
   property: boolean;
+  parcels?: boolean;
 }
 
 export interface PropertyInfo {
@@ -78,7 +81,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     satellite: true,
     roads: true,
     labels: true,
-    property: false
+    property: false,
+    parcels: false
   });
 
   const [propertyLoading, setPropertyLoading] = useState(false);
@@ -87,6 +91,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const roadsLayer = useRef<L.TileLayer | null>(null);
   const labelsLayer = useRef<L.TileLayer | null>(null);
   const propertyLayer = useRef<L.GeoJSON | null>(null);
+  const parcelsGroup = useRef<L.LayerGroup | null>(null);
   const overpassAbortController = useRef<AbortController | null>(null);
 
   // Expanded coverage area including all surrounding counties
@@ -199,13 +204,16 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       opacity: 0.8,
       className: 'labels-overlay'
     });
+
+    // Parcels overlay (group) - endpoints will be added dynamically if available
+    parcelsGroup.current = new L.LayerGroup();
   }, []);
 
   // Toggle layer visibility
   const toggleLayer = useCallback((layerId: string) => {
     if (!map.current) return;
 
-    const newStates = { ...layerStates, [layerId]: !layerStates[layerId] } as LayerStates;
+    const newStates = { ...layerStates, [layerId]: !layerStates[layerId as keyof LayerStates] } as LayerStates;
     setLayerStates(newStates);
 
     switch (layerId) {
@@ -216,7 +224,6 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           map.current.removeLayer(roadsLayer.current);
         }
         break;
-      
       case 'labels':
         if (newStates.labels && labelsLayer.current) {
           labelsLayer.current.addTo(map.current);
@@ -224,9 +231,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           map.current.removeLayer(labelsLayer.current);
         }
         break;
-        
       case 'satellite':
-        // Toggle base satellite layer
         if (currentLayerRef.current) {
           if (newStates.satellite) {
             currentLayerRef.current.setOpacity(1);
@@ -235,7 +240,6 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           }
         }
         break;
-        
       case 'property':
         if (newStates.property) {
           if (!propertyLayer.current) {
@@ -245,7 +249,6 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
             propertyLayer.current.addTo(map.current);
           }
         } else {
-          // If disabling property layer, abort any in-flight Overpass request
           if (overpassAbortController.current) {
             overpassAbortController.current.abort();
             overpassAbortController.current = null;
@@ -255,9 +258,66 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           }
         }
         break;
+      case 'parcels':
+        if (newStates.parcels) {
+          // Lazy-load configured county parcel layers (ArcGIS/WMS) if any portal endpoints are defined
+          if (parcelsGroup.current && !map.current.hasLayer(parcelsGroup.current)) {
+            parcelsGroup.current.addTo(map.current);
+          }
+
+          // Remove any existing layers in the group before re-adding
+          if (parcelsGroup.current) {
+            parcelsGroup.current.clearLayers();
+          }
+
+          let addedCount = 0;
+          // Iterate configured sources and attach known parcel endpoints if present
+          COUNTY_SOURCES.forEach((src) => {
+            if (!parcelsGroup.current) return;
+            const endpoint = src.parcelEndpoint;
+            if (!endpoint) return;
+
+            if (endpoint.type === 'arcgis') {
+              // @ts-ignore esri-leaflet global factory
+              const layer = (L as any).esri?.featureLayer({
+                url: endpoint.url,
+                pane: 'overlayPane',
+                style: {
+                  color: '#10b981',
+                  weight: 1.5,
+                  opacity: 0.8,
+                  fillColor: '#10b981',
+                  fillOpacity: 0.05
+                }
+              });
+              if (layer) {
+                parcelsGroup.current.addLayer(layer);
+                addedCount += 1;
+              }
+            } else if (endpoint.type === 'wms') {
+              const wms = L.tileLayer.wms(endpoint.url, {
+                layers: endpoint.layers,
+                format: 'image/png',
+                transparent: true,
+                opacity: 0.7
+              });
+              parcelsGroup.current.addLayer(wms);
+              addedCount += 1;
+            }
+          });
+
+          if (addedCount === 0) {
+            toast.info('No county parcel services configured yet. External GIS links are available in the Sources tab.');
+          }
+        } else {
+          if (parcelsGroup.current && map.current?.hasLayer(parcelsGroup.current)) {
+            map.current.removeLayer(parcelsGroup.current);
+          }
+        }
+        break;
     }
 
-    toast.success(`${layerId.charAt(0).toUpperCase() + layerId.slice(1)} layer ${newStates[layerId] ? 'enabled' : 'disabled'}`);
+    toast.success(`${layerId.charAt(0).toUpperCase() + layerId.slice(1)} layer ${newStates[layerId as keyof LayerStates] ? 'enabled' : 'disabled'}`);
   }, [layerStates, schedulePropertyBoundaryLoad]);
 
   // Expose layer controls to parent components
