@@ -38,6 +38,15 @@ jobs:
       
     - name: Run unit tests
       run: npm run test:coverage
+    - name: Lighthouse CI (PRs only)
+      if: github.event_name == 'pull_request'
+      uses: treosh/lighthouse-ci-action@v12
+      with:
+        urls: 'http://localhost:8080'
+        configPath: ./.lighthouserc.json
+        uploadArtifacts: true
+        runs: 3
+        temporaryPublicStorage: true
       
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

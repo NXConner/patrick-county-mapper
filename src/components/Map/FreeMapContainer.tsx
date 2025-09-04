@@ -3,7 +3,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
 import { idbGet, idbSet } from '@/lib/idbCache';
-import 'esri-leaflet/dist/esri-leaflet';
 import { COUNTY_SOURCES } from '@/data/countySources';
 
 // Fix for default markers in Leaflet
@@ -59,6 +58,8 @@ export interface FreeMapContainerRef {
   getLayerStates: () => LayerStates;
   getMap: () => L.Map | null;
   centerOnGpsLocation: () => void;
+  getDrawingGeoJSON: () => GeoJSON.FeatureCollection | null;
+  loadDrawingGeoJSON: (data: GeoJSON.FeatureCollection) => void;
 }
 
 const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(({ 
@@ -279,23 +280,28 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
             if (!endpoint) return;
 
             if (endpoint.type === 'arcgis') {
-              type EsriNamespace = { featureLayer: (options: Record<string, unknown>) => L.Layer | null | undefined };
-              const esriNs = (L as unknown as { esri?: EsriNamespace }).esri;
-              const layer = esriNs?.featureLayer({
-                url: endpoint.url,
-                pane: 'overlayPane',
-                style: {
-                  color: '#10b981',
-                  weight: 1.5,
-                  opacity: 0.8,
-                  fillColor: '#10b981',
-                  fillOpacity: 0.05
+              // Lazy-load esri-leaflet to keep initial bundle small
+              Promise.resolve(import('esri-leaflet')).then(() => {
+                type EsriNamespace = { featureLayer: (options: Record<string, unknown>) => L.Layer | null | undefined };
+                const esriNs = (L as unknown as { esri?: EsriNamespace }).esri;
+                const layer = esriNs?.featureLayer({
+                  url: endpoint.url,
+                  pane: 'overlayPane',
+                  style: {
+                    color: '#10b981',
+                    weight: 1.5,
+                    opacity: 0.8,
+                    fillColor: '#10b981',
+                    fillOpacity: 0.05
+                  }
+                });
+                if (layer && parcelsGroup.current) {
+                  parcelsGroup.current.addLayer(layer);
                 }
+              }).catch(() => {
+                toast.error('Failed to load ArcGIS layer');
               });
-              if (layer) {
-                parcelsGroup.current.addLayer(layer);
-                addedCount += 1;
-              }
+              addedCount += 1;
             } else if (endpoint.type === 'wms') {
               const wms = L.tileLayer.wms(endpoint.url, {
                 layers: endpoint.layers,
@@ -328,7 +334,24 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     toggleLayer,
     getLayerStates: () => layerStates,
     getMap: () => map.current,
-    centerOnGpsLocation
+    centerOnGpsLocation,
+    getDrawingGeoJSON: () => {
+      try {
+        return drawnItems.current?.toGeoJSON() as unknown as GeoJSON.FeatureCollection;
+      } catch {
+        return null;
+      }
+    },
+    loadDrawingGeoJSON: (data: GeoJSON.FeatureCollection) => {
+      if (!map.current || !data) return;
+      const layer = L.geoJSON(data);
+      drawnItems.current?.clearLayers();
+      layer.addTo(drawnItems.current);
+      const bounds = layer.getBounds();
+      if (bounds.isValid()) {
+        map.current.fitBounds(bounds.pad(0.1));
+      }
+    }
   }), [handleLocationSearch, toggleLayer, centerOnGpsLocation, layerStates]);
 
   // Patrick County, VA coordinates

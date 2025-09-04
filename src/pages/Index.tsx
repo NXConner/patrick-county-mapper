@@ -8,6 +8,7 @@ import { useGpsLocation } from '@/hooks/useGpsLocation';
 import { lazyWithPreload } from '@/lib/lazyWithPreload';
 import type { FreeMapContainerRef } from '@/components/Map/FreeMapContainer';
 import type { FreeMapContainerProps } from '@/components/Map/FreeMapContainer';
+import WorkspaceService from '@/services/WorkspaceService';
 
 // Lazy load heavy components
 const FreeMapContainer = lazyWithPreload(() => import('@/components/Map/FreeMapContainer'));
@@ -31,6 +32,7 @@ const Index = () => {
     labels: true,
     property: false
   });
+  const [workspaceName, setWorkspaceName] = useState('default');
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
 
@@ -78,6 +80,43 @@ const Index = () => {
       }));
     }
   }, []);
+
+  const saveWorkspace = useCallback(async () => {
+    const drawings = mapRef.current?.getDrawingGeoJSON?.() || null;
+    const mapInstance = mapRef.current?.getMap?.();
+    const center = mapInstance ? mapInstance.getCenter() : { lat: 36.6837, lng: -80.2876 };
+    const zoom = mapInstance ? mapInstance.getZoom() : 10;
+    const payload = {
+      name: workspaceName,
+      createdAt: new Date().toISOString(),
+      map: {
+        center: [center.lat, center.lng] as [number, number],
+        zoom,
+        mapService: selectedMapService,
+        layerStates
+      },
+      drawings
+    };
+    await WorkspaceService.save(payload);
+    toast.success('Workspace saved');
+  }, [workspaceName, selectedMapService, layerStates]);
+
+  const loadWorkspace = useCallback(async () => {
+    const ws = await WorkspaceService.load(workspaceName);
+    if (!ws) {
+      toast.error('Workspace not found');
+      return;
+    }
+    setSelectedMapService(ws.map.mapService);
+    setLayerStates(ws.map.layerStates as any);
+    if (mapRef.current?.getMap?.()) {
+      mapRef.current.getMap()?.setView(ws.map.center as any, ws.map.zoom);
+    }
+    if (ws.drawings) {
+      mapRef.current?.loadDrawingGeoJSON?.(ws.drawings);
+    }
+    toast.success('Workspace loaded');
+  }, [workspaceName]);
 
   // Idle preload of heavy components to reduce interaction latency
   useEffect(() => {
@@ -171,6 +210,16 @@ const Index = () => {
                   {gpsLoading ? 'Locating...' : 'Locate Me'}
                 </span>
               </Button>
+              <div className="hidden md:flex items-center gap-2">
+                <input
+                  className="px-2 py-1 rounded border text-xs bg-background"
+                  placeholder="Workspace name"
+                  value={workspaceName}
+                  onChange={(e) => setWorkspaceName(e.target.value)}
+                />
+                <Button variant="secondary" size="sm" onClick={saveWorkspace} className="text-xs">Save</Button>
+                <Button variant="secondary" size="sm" onClick={loadWorkspace} className="text-xs">Load</Button>
+              </div>
               <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground max-w-xs">
                 <div className="flex items-center gap-1">
                   <Shield className="w-3 h-3" />
