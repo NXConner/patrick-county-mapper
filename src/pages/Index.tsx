@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import MapServiceDropdown from '@/components/Map/MapServiceDropdown';
 import AddressSearchBar from '@/components/Map/AddressSearchBar';
-import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star, Layers, FileText } from 'lucide-react';
+import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star, Layers, FileText, X } from 'lucide-react';
 import { useGpsLocation } from '@/hooks/useGpsLocation';
 import { lazyWithPreload } from '@/lib/lazyWithPreload';
 import type { FreeMapContainerRef } from '@/components/Map/FreeMapContainer';
 import type { FreeMapContainerProps } from '@/components/Map/FreeMapContainer';
+import { computeDirections } from '@/lib/googleMaps';
 
 // Lazy load heavy components
 const FreeMapContainer = lazyWithPreload(() => import('@/components/Map/FreeMapContainer'));
@@ -38,7 +39,20 @@ const Index = () => {
   const mapRef = useRef<FreeMapContainerRef | null>(null);
   
   // GPS location hook
-  const { location: gpsLocation, isLoading: gpsLoading, requestLocation, isSupported: gpsSupported } = useGpsLocation(true);
+  const { location: gpsLocation, isLoading: gpsLoading, requestLocation, isSupported: gpsSupported } = useGpsLocation(false);
+
+  // Request location once per session
+  useEffect(() => {
+    try {
+      const hasRequested = sessionStorage.getItem('gps-requested');
+      if (!hasRequested && gpsSupported) {
+        requestLocation();
+        sessionStorage.setItem('gps-requested', '1');
+      }
+    } catch {}
+  }, [gpsSupported, requestLocation]);
+
+  const [directionsMeta, setDirectionsMeta] = useState<{ distanceText?: string; durationText?: string } | null>(null);
 
   // Hydrate selected map service from localStorage
   useEffect(() => {
@@ -68,6 +82,30 @@ const Index = () => {
       mapRef.current.handleLocationSearch(lat, lng, address);
     }
   }, []);
+
+  const handleGetDirections = useCallback(async (lat: number, lng: number, address: string) => {
+    if (!gpsLocation) {
+      toast.info('Getting your current location first...');
+      requestLocation();
+      return;
+    }
+    try {
+      const res = await computeDirections(
+        { lat: gpsLocation.latitude, lng: gpsLocation.longitude },
+        { lat, lng },
+        'DRIVING'
+      );
+      if (res && mapRef.current?.showRoute) {
+        mapRef.current.showRoute(res.polyline, { distanceText: res.distanceText, durationText: res.durationText });
+        setDirectionsMeta({ distanceText: res.distanceText, durationText: res.durationText });
+      } else {
+        toast.error('No route found');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to compute directions');
+    }
+  }, [gpsLocation, requestLocation]);
 
   const handleLayerToggle = useCallback((layerId: string) => {
     if (mapRef.current && mapRef.current.toggleLayer) {
@@ -144,7 +182,7 @@ const Index = () => {
           {/* Bottom row - Enhanced Search and Controls */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 lg:gap-6">
             <div className="flex-1 max-w-full sm:max-w-md">
-              <AddressSearchBar onLocationSelect={handleLocationSearch} />
+              <AddressSearchBar onLocationSelect={handleLocationSearch} onGetDirections={handleGetDirections} />
             </div>
             <div className="flex items-center gap-3 justify-between sm:justify-end">
               <MapServiceDropdown
@@ -227,6 +265,18 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             gpsLocation={gpsLocation}
           />
+
+          {/* Directions meta overlay */}
+          {directionsMeta && (
+            <div className="absolute bottom-4 left-4 z-40 bg-gis-panel/90 backdrop-blur-sm p-2 sm:p-3 rounded-lg shadow-panel flex items-center gap-2">
+              <span className="text-xs text-foreground">
+                {directionsMeta.distanceText} · {directionsMeta.durationText}
+              </span>
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { mapRef.current?.clearRoute?.(); setDirectionsMeta(null); }}>
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
 
           {showAsphaltDetector && (
             <EnhancedAsphaltDetector 

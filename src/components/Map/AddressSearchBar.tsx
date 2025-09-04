@@ -40,11 +40,13 @@ interface SearchResult {
 
 interface AddressSearchBarProps {
   onLocationSelect: (lat: number, lng: number, address: string) => void;
+  onGetDirections?: (lat: number, lng: number, address: string) => void;
   className?: string;
 }
 
 const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
   onLocationSelect,
+  onGetDirections,
   className = ""
 }) => {
   const [query, setQuery] = useState('');
@@ -216,6 +218,15 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
         onClick: () => console.log("View on map")
       }
     });
+  };
+
+  const handleResultDirections = (result: SearchResult) => {
+    if (!onGetDirections) return;
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    const address = formatAddress(result);
+    onGetDirections(lat, lng, address);
+    setShowResults(false);
   };
 
   const handleHistorySelect = (item: SearchHistoryItem) => {
@@ -502,36 +513,41 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
                   } else {
                     const result = item as SearchResult;
                     return (
-                      <button
-                        key={`result-${index}`}
-                        onClick={() => handleResultSelect(result)}
-                        className={`w-full text-left p-3 rounded-lg transition-all duration-200 border-0 bg-transparent touch-manipulation ${
-                          isSelected 
-                            ? 'bg-primary/10 border border-primary/20 shadow-sm' 
-                            : 'hover:bg-muted/50 hover:shadow-sm'
-                        }`}
-                      >
+                      <div key={`result-${index}`} className={`w-full p-2 rounded-lg ${isSelected ? 'bg-primary/10 border border-primary/20 shadow-sm' : 'hover:bg-muted/50 hover:shadow-sm'} transition-all duration-200`}>
                         <div className="flex items-start gap-3">
                           <div className="p-1.5 rounded-lg bg-muted/20">
                             {getResultIcon(result)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-foreground truncate">
-                              {formatAddress(result)}
-                            </div>
-                            {result.address?.county && (
-                              <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                                <span>{result.address.county}, {result.address.state || 'VA'}</span>
-                                {result.type && (
-                                  <Badge variant="secondary" className="text-xs px-1.5 py-0.5 bg-muted/50">
-                                    {result.type.replace('_', ' ')}
-                                  </Badge>
-                                )}
+                            <button
+                              onClick={() => handleResultSelect(result)}
+                              className="text-left block w-full"
+                            >
+                              <div className="text-sm font-medium text-foreground truncate">
+                                {formatAddress(result)}
+                              </div>
+                              {result.address?.county && (
+                                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                                  <span>{result.address.county}, {result.address.state || 'VA'}</span>
+                                  {result.type && (
+                                    <Badge variant="secondary" className="text-xs px-1.5 py-0.5 bg-muted/50">
+                                      {result.type.replace('_', ' ')}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                            </button>
+                            {onGetDirections && (
+                              <div className="mt-2">
+                                <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={() => handleResultDirections(result)}>
+                                  <Navigation className="w-3 h-3 mr-1" />
+                                  Get Directions
+                                </Button>
                               </div>
                             )}
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   }
                 })
