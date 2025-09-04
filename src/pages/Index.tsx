@@ -23,6 +23,7 @@ const BookmarksDialog = lazyWithPreload(() => import('@/components/Workspace/Boo
 const EstimatorPanel = lazyWithPreload(() => import('@/components/Estimator/EstimatorPanel'));
 const AiJobsDialog = lazyWithPreload(() => import('@/components/AI/AiJobsDialog'));
 const ShareDialog = lazyWithPreload(() => import('@/components/Workspace/ShareDialog'));
+const ExportHistoryDialog = lazyWithPreload(() => import('@/components/Export/ExportHistoryDialog'));
 
 const ServiceInfo = lazyWithPreload(() => import('@/components/ServiceInfo/ServiceInfo'));
 
@@ -46,8 +47,10 @@ const Index = () => {
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showEstimator, setShowEstimator] = useState(false);
   const [lastAreaSqFt, setLastAreaSqFt] = useState<number | null>(null);
+  const [lastSurfaces, setLastSurfaces] = useState<Array<{ type: string; area: number }> | undefined>(undefined);
   const [showAiJobs, setShowAiJobs] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [showExportHistory, setShowExportHistory] = useState(false);
 
   // Map reference for communication with map component
   const mapRef = useRef<FreeMapContainerRef | null>(null);
@@ -380,6 +383,7 @@ const Index = () => {
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowVersionHistory(true)} title="Version History">History</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowShare(true)} title="Share">Share</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowEstimator(true)} title="Estimator">Estimate</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowExportHistory(true)} title="Export History">Exports</Button>
               </div>
               <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground max-w-xs">
                 <div className="flex items-center gap-1">
@@ -458,6 +462,12 @@ const Index = () => {
                 toast.success(`Enhanced AI analysis complete: ${results.length} surfaces detected`, {
                   description: "Advanced computer vision analysis with measurements and cost estimates"
                 });
+                try {
+                  const surfaces = (results || []).map((r: any) => ({ type: r.surfaceType, area: r.area }));
+                  setLastSurfaces(surfaces);
+                  const totalArea = surfaces.reduce((sum, s) => sum + (typeof s.area === 'number' ? s.area : 0), 0);
+                  if (totalArea > 0) setLastAreaSqFt(totalArea);
+                } catch {}
               }}
               onClose={() => setShowAsphaltDetector(false)}
             />
@@ -528,13 +538,16 @@ const Index = () => {
           />
         )}
         {showEstimator && (
-          <EstimatorPanel isOpen={showEstimator} onClose={() => setShowEstimator(false)} areaSqFt={lastAreaSqFt} />
+          <EstimatorPanel isOpen={showEstimator} onClose={() => setShowEstimator(false)} areaSqFt={lastAreaSqFt} surfaces={lastSurfaces} />
         )}
         {showAiJobs && (
           <AiJobsDialog isOpen={showAiJobs} onClose={() => setShowAiJobs(false)} />
         )}
         {showShare && (
           <ShareDialog isOpen={showShare} onClose={() => setShowShare(false)} workspaceName={workspaceName} />
+        )}
+        {showExportHistory && (
+          <ExportHistoryDialog isOpen={showExportHistory} onClose={() => setShowExportHistory(false)} />
         )}
       </Suspense>
     </div>

@@ -8,11 +8,12 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   areaSqFt: number | null;
+  surfaces?: Array<{ type: string; area: number }>;
 }
 
 const FALLBACK_UNIT_COST = 4; // $/sqft default fallback
 
-export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt }) => {
+export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt, surfaces }) => {
   const [catalog, setCatalog] = useState<CostCatalog | null>(null);
   const [unitCost, setUnitCost] = useState<number>(FALLBACK_UNIT_COST);
 
@@ -42,6 +43,14 @@ export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt }) =
     return Math.round(areaSqFt * unitCost);
   }, [areaSqFt, unitCost]);
 
+  const lineItems = useMemo(() => {
+    const items = (surfaces || []).map(s => ({ label: s.type, area: s.area, cost: Math.round(s.area * unitCost) }));
+    if (items.length === 0 && areaSqFt) {
+      items.push({ label: 'Asphalt', area: areaSqFt, cost: Math.round(areaSqFt * unitCost) });
+    }
+    return items;
+  }, [surfaces, areaSqFt, unitCost]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -56,6 +65,18 @@ export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt }) =
           <div className="text-sm text-muted-foreground">Estimated total</div>
           <div className="text-2xl font-bold">${total.toLocaleString()}</div>
           {catalog ? <div className="text-xs text-muted-foreground">Using default catalog: {catalog.region}</div> : <div className="text-xs text-muted-foreground">Using fallback rate</div>}
+          <div className="pt-2">
+            <div className="text-sm font-medium">Line items</div>
+            <div className="space-y-1">
+              {lineItems.map((li, idx) => (
+                <div key={idx} className="flex items-center justify-between text-sm">
+                  <div>{li.label}</div>
+                  <div className="text-muted-foreground">{Math.round(li.area).toLocaleString()} sq ft</div>
+                  <div>${li.cost.toLocaleString()}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" onClick={onClose}>Close</Button>
