@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { WorkspaceMembersService, type WorkspaceMember, type WorkspaceRole } from '@/services/WorkspaceMembersService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   isOpen: boolean;
@@ -29,13 +30,22 @@ export const ShareDialog: React.FC<Props> = ({ isOpen, onClose, workspaceName })
         </DialogHeader>
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Input placeholder="User ID" value={userId} onChange={(e) => setUserId(e.target.value)} />
+            <Input placeholder="User ID or Email" value={userId} onChange={(e) => setUserId(e.target.value)} />
             <select className="border rounded px-2 py-1" value={role} onChange={(e) => setRole(e.target.value as WorkspaceRole)}>
               <option value="viewer">Viewer</option>
               <option value="editor">Editor</option>
               <option value="owner">Owner</option>
             </select>
-            <Button onClick={async () => { await WorkspaceMembersService.add(workspaceName, userId, role); setUserId(''); refresh(); }}>Add</Button>
+            <Button onClick={async () => {
+              let uid = userId;
+              if (userId.includes('@')) {
+                const { data } = await supabase.from('profiles').select('id').ilike('email', userId).limit(1);
+                if (data && data.length > 0) uid = data[0].id as any;
+              }
+              await WorkspaceMembersService.add(workspaceName, uid, role);
+              setUserId('');
+              refresh();
+            }}>Add</Button>
           </div>
           <div className="space-y-2 max-h-[40vh] overflow-auto">
             {members.length === 0 ? (

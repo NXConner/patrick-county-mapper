@@ -9,6 +9,7 @@ import { lazyWithPreload } from '@/lib/lazyWithPreload';
 import type { FreeMapContainerRef } from '@/components/Map/FreeMapContainer';
 import type { FreeMapContainerProps } from '@/components/Map/FreeMapContainer';
 import { getStateFromUrl, setStateInUrl } from '@/lib/urlState';
+import { useWorkspaceRole } from '@/hooks/useWorkspaceRole';
 
 // Lazy load heavy components
 const FreeMapContainer = lazyWithPreload(() => import('@/components/Map/FreeMapContainer'));
@@ -51,6 +52,7 @@ const Index = () => {
   const [showAiJobs, setShowAiJobs] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showExportHistory, setShowExportHistory] = useState(false);
+  const { isViewer } = useWorkspaceRole(workspaceName);
 
   // Map reference for communication with map component
   const mapRef = useRef<FreeMapContainerRef | null>(null);
@@ -307,9 +309,9 @@ const Index = () => {
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
                 />
-                <Button variant="secondary" size="sm" onClick={saveWorkspace} className="text-xs">Save</Button>
+                <Button variant="secondary" size="sm" onClick={saveWorkspace} className="text-xs" disabled={isViewer}>Save</Button>
                 <Button variant="secondary" size="sm" onClick={loadWorkspace} className="text-xs">Load</Button>
-                <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
+                <Button variant="outline" size="sm" className="text-xs" disabled={isViewer} onClick={async () => {
                   try {
                     const map = mapRef.current?.getMap?.();
                     if (!map) return;
@@ -326,7 +328,7 @@ const Index = () => {
                   }
                 }} title="Bookmark"><Bookmark className="w-3.5 h-3.5" /></Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowBookmarks(true)} title="Bookmarks">Bookmarks</Button>
-                <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
+                <Button variant="outline" size="sm" className="text-xs" disabled={isViewer} onClick={async () => {
                   try {
                     const map = mapRef.current?.getMap?.();
                     if (!map) return;
@@ -349,7 +351,7 @@ const Index = () => {
                     toast.error('Failed to save version');
                   }
                 }} title="Save Version"><Save className="w-3.5 h-3.5" /></Button>
-                <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
+                <Button variant="outline" size="sm" className="text-xs" disabled={isViewer} onClick={async () => {
                   try {
                     const { WorkspaceVersionsService } = await import('@/services/WorkspaceVersionsService');
                     const latest = await WorkspaceVersionsService.getLatestVersion(workspaceName);
@@ -382,6 +384,20 @@ const Index = () => {
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowAiJobs(true)} title="AI Jobs">AI Jobs</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowVersionHistory(true)} title="Version History">History</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowShare(true)} title="Share">Share</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
+                  try {
+                    const map = mapRef.current?.getMap?.();
+                    if (!map) return;
+                    const c = map.getCenter();
+                    const z = map.getZoom();
+                    const { setStateInUrl } = await import('@/lib/urlState');
+                    setStateInUrl({ lat: c.lat, lng: c.lng, z, svc: selectedMapService, layers: layerStates }, true);
+                    await navigator.clipboard.writeText(window.location.href);
+                    toast.success('Share link copied');
+                  } catch {
+                    toast.error('Failed to copy link');
+                  }
+                }} title="Copy Share Link">Copy Link</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowEstimator(true)} title="Estimator">Estimate</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowExportHistory(true)} title="Export History">Exports</Button>
               </div>

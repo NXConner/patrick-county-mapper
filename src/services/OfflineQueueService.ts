@@ -2,7 +2,7 @@ import { idbGet, idbSet } from '@/lib/idbCache';
 
 type OfflineTask = {
   id: string;
-  type: 'ai_job_insert';
+  type: 'ai_job_insert' | 'export_log_insert' | 'workspace_upsert';
   payload: Record<string, unknown>;
   createdAt: number;
 };
@@ -27,14 +27,16 @@ export class OfflineQueueService {
 
   static async process(processors: {
     ai_job_insert: (payload: Record<string, unknown>) => Promise<void>;
+    export_log_insert: (payload: Record<string, unknown>) => Promise<void>;
+    workspace_upsert: (payload: Record<string, unknown>) => Promise<void>;
   }): Promise<void> {
     const q = await loadQueue();
     const remaining: OfflineTask[] = [];
     for (const t of q) {
       try {
-        if (t.type === 'ai_job_insert') {
-          await processors.ai_job_insert(t.payload);
-        }
+        if (t.type === 'ai_job_insert') await processors.ai_job_insert(t.payload);
+        else if (t.type === 'export_log_insert') await processors.export_log_insert(t.payload);
+        else if (t.type === 'workspace_upsert') await processors.workspace_upsert(t.payload);
       } catch {
         remaining.push(t);
       }

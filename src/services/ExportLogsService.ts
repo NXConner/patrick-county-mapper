@@ -7,9 +7,9 @@ export class ExportLogsService {
       const { error: err } = await supabase.from('export_logs').insert({ export_type: type, options, status, error, user_id: user?.id ?? null });
       if (err) throw err;
     } catch {
-      // ignore; optionally enqueue offline
+      // enqueue offline export log
       const { OfflineQueueService } = await import('./OfflineQueueService');
-      await OfflineQueueService.enqueue({ id: crypto.randomUUID(), type: 'ai_job_insert', payload: { export_type: type, options, status, error, user_id: user?.id ?? null }, createdAt: Date.now() });
+      await OfflineQueueService.enqueue({ id: crypto.randomUUID(), type: 'export_log_insert', payload: { export_type: type, options, status, error, user_id: user?.id ?? null }, createdAt: Date.now() });
     }
   }
 }

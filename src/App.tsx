@@ -50,6 +50,18 @@ const App = () => {
         const { supabase } = await import('@/integrations/supabase/client');
         const { error } = await supabase.from('ai_jobs').insert({ aoi, params, created_by }).select('id').single();
         if (error) throw error;
+      },
+      export_log_insert: async (payload) => {
+        const { export_type, options, status, error: err, user_id } = payload as any;
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { error } = await supabase.from('export_logs').insert({ export_type, options, status, error: err, user_id }).select('id').single();
+        if (error) throw error;
+      },
+      workspace_upsert: async (payload) => {
+        const { name, payload: wsPayload, updated_at } = payload as any;
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { error } = await supabase.from('workspaces').upsert({ name, payload: wsPayload, updated_at }).select('name').single();
+        if (error) throw error;
       }
     });
     return stop;

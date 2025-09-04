@@ -29,7 +29,13 @@ export class WorkspaceService {
 			// Create a version entry
 			await WorkspaceVersionsService.createVersion(state.name, state);
 			return;
-		} catch {}
+		} catch {
+			// enqueue upsert offline
+			try {
+				const { OfflineQueueService } = await import('./OfflineQueueService');
+				await OfflineQueueService.enqueue({ id: crypto.randomUUID(), type: 'workspace_upsert', payload: { name: state.name, payload: state, updated_at: new Date().toISOString() }, createdAt: Date.now() });
+			} catch {}
+		}
 
 		// Fallback to IndexedDB
 		await idbSet(`${IDB_KEY_PREFIX}${state.name}`, state, IDB_TTL_MS);
