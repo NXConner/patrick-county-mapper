@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import L from 'leaflet';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
 import { idbGet, idbSet } from '@/lib/idbCache';
-import 'esri-leaflet/dist/esri-leaflet';
 import { COUNTY_SOURCES } from '@/data/countySources';
 import { decodePolyline } from '@/lib/googleMaps';
 
@@ -60,8 +61,6 @@ export interface FreeMapContainerRef {
   getLayerStates: () => LayerStates;
   getMap: () => L.Map | null;
   centerOnGpsLocation: () => void;
-  showRoute: (encodedPolyline: string, meta?: { distanceText?: string; durationText?: string }) => void;
-  clearRoute: () => void;
 }
 
 const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(({ 
@@ -98,6 +97,14 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const propertyLayer = useRef<L.GeoJSON | null>(null);
   const parcelsGroup = useRef<L.LayerGroup | null>(null);
   const overpassAbortController = useRef<AbortController | null>(null);
+  const clusterGroup = useRef<L.MarkerClusterGroup | null>(null as unknown as L.MarkerClusterGroup);
+
+  // Measurement state
+  const [measurementPoints, setMeasurementPoints] = useState<L.LatLng[]>([]);
+  const tempLine = useRef<L.Polyline | null>(null);
+  const tempPolygon = useRef<L.Polygon | null>(null);
+  const [bearingDeg, setBearingDeg] = useState<number | null>(null);
+  const [cursorDms, setCursorDms] = useState<string | null>(null);
 
   // Expanded coverage area including all surrounding counties
   const coverageCenter = useMemo<[number, number]>(() => [36.6837, -80.2876], []); // Patrick County center
@@ -358,23 +365,28 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
             if (!endpoint) return;
 
             if (endpoint.type === 'arcgis') {
-              type EsriNamespace = { featureLayer: (options: Record<string, unknown>) => L.Layer | null | undefined };
-              const esriNs = (L as unknown as { esri?: EsriNamespace }).esri;
-              const layer = esriNs?.featureLayer({
-                url: endpoint.url,
-                pane: 'overlayPane',
-                style: {
-                  color: '#10b981',
-                  weight: 1.5,
-                  opacity: 0.8,
-                  fillColor: '#10b981',
-                  fillOpacity: 0.05
+              // Lazy-load esri-leaflet to keep initial bundle small
+              Promise.resolve(import('esri-leaflet')).then(() => {
+                type EsriNamespace = { featureLayer: (options: Record<string, unknown>) => L.Layer | null | undefined };
+                const esriNs = (L as unknown as { esri?: EsriNamespace }).esri;
+                const layer = esriNs?.featureLayer({
+                  url: endpoint.url,
+                  pane: 'overlayPane',
+                  style: {
+                    color: '#10b981',
+                    weight: 1.5,
+                    opacity: 0.8,
+                    fillColor: '#10b981',
+                    fillOpacity: 0.05
+                  }
+                });
+                if (layer && parcelsGroup.current) {
+                  parcelsGroup.current.addLayer(layer);
                 }
+              }).catch(() => {
+                toast.error('Failed to load ArcGIS layer');
               });
-              if (layer) {
-                parcelsGroup.current.addLayer(layer);
-                addedCount += 1;
-              }
+              addedCount += 1;
             } else if (endpoint.type === 'wms') {
               const wms = L.tileLayer.wms(endpoint.url, {
                 layers: endpoint.layers,
@@ -408,9 +420,6 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     getLayerStates: () => layerStates,
     getMap: () => map.current,
     centerOnGpsLocation,
-    showRoute,
-    clearRoute
-  }), [handleLocationSearch, toggleLayer, centerOnGpsLocation, layerStates, showRoute, clearRoute]);
 
   // Patrick County, VA coordinates
   const patrickCountyCenter: [number, number] = [36.6837, -80.2876];
@@ -681,7 +690,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     map.current = L.map(mapContainer.current, {
       center: initialCenter,
       zoom: initialZoom,
-      zoomControl: true
+      zoomControl: true,
+      preferCanvas: true
     });
 
     // Add initial tile layer
@@ -848,8 +858,33 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   };
 
   const addMarker = (latlng: L.LatLng) => {
-    const marker = L.marker(latlng).addTo(drawnItems.current);
-    marker.bindPopup('Sample location marker');
+    // Lazy-init marker clustering to avoid extra bundle on initial load
+    if (!clusterGroup.current && map.current) {
+      // @ts-expect-error: dynamic plugin without types
+      Promise.resolve(import('leaflet.markercluster')).then(() => {
+        // @ts-expect-error: plugin augments L
+        clusterGroup.current = L.markerClusterGroup({ chunkedLoading: true });
+        // @ts-expect-error
+        clusterGroup.current.addTo(map.current!);
+        const marker = L.marker(latlng);
+        marker.bindPopup('Sample location marker');
+        // @ts-expect-error
+        clusterGroup.current.addLayer(marker);
+      }).catch(() => {
+        const marker = L.marker(latlng).addTo(drawnItems.current);
+        marker.bindPopup('Sample location marker');
+      });
+      return;
+    }
+    if (clusterGroup.current) {
+      const marker = L.marker(latlng);
+      marker.bindPopup('Sample location marker');
+      // @ts-expect-error
+      clusterGroup.current.addLayer(marker);
+    } else {
+      const marker = L.marker(latlng).addTo(drawnItems.current);
+      marker.bindPopup('Sample location marker');
+    }
   };
 
   // Handle map clicks for drawing
@@ -859,6 +894,57 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     const handleMapClick = (e: L.LeafletMouseEvent) => {
       if (activeTool === 'point') {
         addMarker(e.latlng);
+      } else if (activeTool === 'line') {
+        setMeasurementPoints((prev) => {
+          const next = [...prev, e.latlng];
+          if (tempLine.current) {
+            tempLine.current.setLatLngs(next);
+          } else if (map.current) {
+            tempLine.current = L.polyline(next, { color: '#7c3aed', weight: 3 }).addTo(map.current);
+          }
+          if (next.length >= 2) {
+            const total = next.reduce((sum, cur, idx) => {
+              if (idx === 0) return 0;
+              return sum + cur.distanceTo(next[idx - 1]);
+            }, 0);
+            onMeasurement?.({ distance: total * 3.28084 });
+            const a = next[next.length - 2];
+            const b = next[next.length - 1];
+            const brg = Math.atan2(
+              Math.sin((b.lng - a.lng) * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180),
+              Math.cos(a.lat * Math.PI / 180) * Math.sin(b.lat * Math.PI / 180) -
+              Math.sin(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.cos((b.lng - a.lng) * Math.PI / 180)
+            ) * 180 / Math.PI;
+            setBearingDeg((brg + 360) % 360);
+          }
+          return next;
+        });
+      } else if (activeTool === 'polygon') {
+        setMeasurementPoints((prev) => {
+          const next = [...prev, e.latlng];
+          if (tempPolygon.current) {
+            tempPolygon.current.setLatLngs(next);
+          } else if (map.current) {
+            tempPolygon.current = L.polygon(next, { color: '#10b981', weight: 2, fillOpacity: 0.2 }).addTo(map.current);
+          }
+          if (next.length >= 3) {
+            // Approximate planar area; acceptable at local scale
+            let areaMeters = 0;
+            for (let i = 1; i < next.length - 1; i++) {
+              const a = next[0];
+              const b = next[i];
+              const c = next[i + 1];
+              const ab = a.distanceTo(b);
+              const ac = a.distanceTo(c);
+              const bc = b.distanceTo(c);
+              const s = (ab + ac + bc) / 2;
+              const tri = Math.max(s * (s - ab) * (s - ac) * (s - bc), 0);
+              areaMeters += Math.sqrt(tri);
+            }
+            onMeasurement?.({ area: areaMeters * 10.7639 });
+          }
+          return next;
+        });
       }
     };
 
@@ -870,6 +956,24 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       }
     };
   }, [activeTool]);
+
+  // Cursor coordinate DMS readout
+  useEffect(() => {
+    if (!map.current) return;
+    const update = (e: L.LeafletMouseEvent) => {
+      const toDms = (deg: number, pos: string, neg: string) => {
+        const d = Math.floor(Math.abs(deg));
+        const mFloat = (Math.abs(deg) - d) * 60;
+        const m = Math.floor(mFloat);
+        const s = ((mFloat - m) * 60).toFixed(2);
+        const hemi = deg >= 0 ? pos : neg;
+        return `${d}°${m}'${s}" ${hemi}`;
+      };
+      setCursorDms(`${toDms(e.latlng.lat, 'N', 'S')} ${toDms(e.latlng.lng, 'E', 'W')}`);
+    };
+    map.current.on('mousemove', update);
+    return () => { map.current?.off('mousemove', update); };
+  }, [mapLoaded]);
 
   return (
     <div className="relative w-full h-full">
@@ -924,6 +1028,16 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         <p className="text-[8px] sm:text-[10px] text-muted-foreground">
           {mapService === 'esri-satellite' ? 'High-res satellite imagery' : 'Open source mapping'}
         </p>
+      </div>
+
+      {/* Measurement HUD */}
+      <div className="absolute bottom-4 left-4 z-40 bg-gis-toolbar text-foreground rounded-lg px-3 py-2 text-xs shadow-floating space-y-1">
+        {bearingDeg !== null && (
+          <div>Bearing: {bearingDeg.toFixed(1)}°</div>
+        )}
+        {cursorDms && (
+          <div>Cursor: {cursorDms}</div>
+        )}
       </div>
     </div>
   );
