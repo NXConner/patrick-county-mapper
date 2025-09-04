@@ -600,7 +600,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     map.current = L.map(mapContainer.current, {
       center: initialCenter,
       zoom: initialZoom,
-      zoomControl: true
+      zoomControl: true,
+      preferCanvas: true
     });
 
     // Add initial tile layer

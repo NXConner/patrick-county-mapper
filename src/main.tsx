@@ -3,16 +3,12 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Register service worker for PWA capabilities only in production to avoid dev caching issues
+// Let VitePWA handle service worker registration; keep legacy SW for fallback in non-PWA builds
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log('SW registered: ', registration);
-      })
-      .catch((registrationError) => {
-        console.log('SW registration failed: ', registrationError);
-      });
+    if (!('workbox' in self)) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
   });
 }
 

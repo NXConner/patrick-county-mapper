@@ -56,20 +56,33 @@ export class ExportService {
     options: Partial<ExportOptions> = {}
   ): Promise<void> {
     try {
-      // Dynamic import to avoid loading jsPDF unless needed
-      const { jsPDF } = await import('jspdf');
-      const { default: html2canvas } = await import('html2canvas');
-      
-      const pdf = new jsPDF(
-        options.orientation || 'landscape',
-        'mm', 
-        options.pageSize || 'a4'
-      );
-      
-      // Create PDF content
-      await this.createPDFContent(pdf, data, options);
-      
-      pdf.save(this.generateFilename(data, 'pdf'));
+      const worker = new Worker(new URL('../workers/pdfWorker.ts', import.meta.url), { type: 'module' });
+      const result: ArrayBuffer = await new Promise((resolve, reject) => {
+        const onMessage = (event: MessageEvent) => {
+          const payload = event.data as { ok: boolean; buffer?: ArrayBuffer; error?: string };
+          if (payload?.ok && payload.buffer) {
+            worker.removeEventListener('message', onMessage);
+            worker.terminate();
+            resolve(payload.buffer);
+          } else {
+            worker.removeEventListener('message', onMessage);
+            worker.terminate();
+            reject(new Error(payload?.error || 'PDF generation failed'));
+          }
+        };
+        worker.addEventListener('message', onMessage);
+        worker.postMessage({ type: 'generate-pdf', data, options });
+      });
+
+      const blob = new Blob([result], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = this.generateFilename(data, 'pdf');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       
     } catch (error) {
       console.error('PDF export failed:', error);
