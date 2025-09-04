@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { idbGet, idbSet } from '@/lib/idbCache';
+import { WorkspaceVersionsService } from './WorkspaceVersionsService';
 
 export interface WorkspaceState {
 	name: string;
@@ -14,6 +15,7 @@ export interface WorkspaceState {
 }
 
 const IDB_KEY_PREFIX = 'workspace:';
+const IDB_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
 
 export class WorkspaceService {
 	static async save(state: WorkspaceState): Promise<void> {
@@ -24,11 +26,13 @@ export class WorkspaceService {
 				payload: state as unknown as Record<string, unknown>,
 				updated_at: new Date().toISOString(),
 			}).throwOnError();
+			// Create a version entry
+			await WorkspaceVersionsService.createVersion(state.name, state);
 			return;
 		} catch {}
 
 		// Fallback to IndexedDB
-		await idbSet(`${IDB_KEY_PREFIX}${state.name}`, state);
+		await idbSet(`${IDB_KEY_PREFIX}${state.name}`, state, IDB_TTL_MS);
 	}
 
 	static async load(name: string): Promise<WorkspaceState | null> {
