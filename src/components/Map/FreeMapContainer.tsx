@@ -209,6 +209,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     parcelsGroup.current = new L.LayerGroup();
   }, []);
 
+
   // Toggle layer visibility
   const toggleLayer = useCallback((layerId: string) => {
     if (!map.current) return;
@@ -278,8 +279,9 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
             if (!endpoint) return;
 
             if (endpoint.type === 'arcgis') {
-              // @ts-ignore esri-leaflet global factory
-              const layer = (L as any).esri?.featureLayer({
+              type EsriNamespace = { featureLayer: (options: Record<string, unknown>) => L.Layer | null | undefined };
+              const esriNs = (L as unknown as { esri?: EsriNamespace }).esri;
+              const layer = esriNs?.featureLayer({
                 url: endpoint.url,
                 pane: 'overlayPane',
                 style: {

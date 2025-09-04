@@ -33,6 +33,7 @@ interface MeasurementToolbarProps {
     roads: boolean;
     labels: boolean;
     property: boolean;
+    parcels?: boolean;
   };
   onLayerToggle?: (layerId: string) => void;
   onAsphaltDetection?: () => void;
@@ -130,7 +131,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
       id: 'parcels',
       name: 'County Parcels',
       icon: <RulerIcon className="w-4 h-4" />,
-      active: (layerStates as any)?.parcels ?? false,
+      active: layerStates?.parcels ?? false,
       description: 'Official county parcel overlays (if available)',
       color: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30'
     }
