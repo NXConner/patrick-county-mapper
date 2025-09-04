@@ -22,6 +22,7 @@ const VersionHistoryDialog = lazyWithPreload(() => import('@/components/Workspac
 const BookmarksDialog = lazyWithPreload(() => import('@/components/Workspace/BookmarksDialog'));
 const EstimatorPanel = lazyWithPreload(() => import('@/components/Estimator/EstimatorPanel'));
 const AiJobsDialog = lazyWithPreload(() => import('@/components/AI/AiJobsDialog'));
+const ShareDialog = lazyWithPreload(() => import('@/components/Workspace/ShareDialog'));
 
 const ServiceInfo = lazyWithPreload(() => import('@/components/ServiceInfo/ServiceInfo'));
 
@@ -46,6 +47,7 @@ const Index = () => {
   const [showEstimator, setShowEstimator] = useState(false);
   const [lastAreaSqFt, setLastAreaSqFt] = useState<number | null>(null);
   const [showAiJobs, setShowAiJobs] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   // Map reference for communication with map component
   const mapRef = useRef<FreeMapContainerRef | null>(null);
@@ -376,6 +378,7 @@ const Index = () => {
                 }} title="Queue AI Batch"><Play className="w-3.5 h-3.5" /></Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowAiJobs(true)} title="AI Jobs">AI Jobs</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowVersionHistory(true)} title="Version History">History</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowShare(true)} title="Share">Share</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowEstimator(true)} title="Estimator">Estimate</Button>
               </div>
               <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground max-w-xs">
@@ -529,6 +532,9 @@ const Index = () => {
         )}
         {showAiJobs && (
           <AiJobsDialog isOpen={showAiJobs} onClose={() => setShowAiJobs(false)} />
+        )}
+        {showShare && (
+          <ShareDialog isOpen={showShare} onClose={() => setShowShare(false)} workspaceName={workspaceName} />
         )}
       </Suspense>
     </div>
