@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle, useCallback, useMemo } from 'react';
 import L from 'leaflet';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
 import { idbGet, idbSet } from '@/lib/idbCache';
@@ -94,6 +96,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const propertyLayer = useRef<L.GeoJSON | null>(null);
   const parcelsGroup = useRef<L.LayerGroup | null>(null);
   const overpassAbortController = useRef<AbortController | null>(null);
+  const clusterGroup = useRef<L.MarkerClusterGroup | null>(null as unknown as L.MarkerClusterGroup);
 
   // Expanded coverage area including all surrounding counties
   const coverageCenter = useMemo<[number, number]>(() => [36.6837, -80.2876], []); // Patrick County center
@@ -791,8 +794,33 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   };
 
   const addMarker = (latlng: L.LatLng) => {
-    const marker = L.marker(latlng).addTo(drawnItems.current);
-    marker.bindPopup('Sample location marker');
+    // Lazy-init marker clustering to avoid extra bundle on initial load
+    if (!clusterGroup.current && map.current) {
+      // @ts-expect-error: dynamic plugin without types
+      Promise.resolve(import('leaflet.markercluster')).then(() => {
+        // @ts-expect-error: plugin augments L
+        clusterGroup.current = L.markerClusterGroup({ chunkedLoading: true });
+        // @ts-expect-error
+        clusterGroup.current.addTo(map.current!);
+        const marker = L.marker(latlng);
+        marker.bindPopup('Sample location marker');
+        // @ts-expect-error
+        clusterGroup.current.addLayer(marker);
+      }).catch(() => {
+        const marker = L.marker(latlng).addTo(drawnItems.current);
+        marker.bindPopup('Sample location marker');
+      });
+      return;
+    }
+    if (clusterGroup.current) {
+      const marker = L.marker(latlng);
+      marker.bindPopup('Sample location marker');
+      // @ts-expect-error
+      clusterGroup.current.addLayer(marker);
+    } else {
+      const marker = L.marker(latlng).addTo(drawnItems.current);
+      marker.bindPopup('Sample location marker');
+    }
   };
 
   // Handle map clicks for drawing

@@ -38,6 +38,12 @@ jobs:
       
     - name: Run unit tests
       run: npm run test:coverage
+    - name: Build for preview
+      run: npm run build
+    - name: Start preview server
+      run: npx vite preview --port 8080 &
+    - name: Wait for preview
+      run: npx wait-on http://localhost:8080
     - name: Lighthouse CI (PRs only)
       if: github.event_name == 'pull_request'
       uses: treosh/lighthouse-ci-action@v12
