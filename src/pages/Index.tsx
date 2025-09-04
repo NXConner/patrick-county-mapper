@@ -17,6 +17,7 @@ const PropertyPanel = lazyWithPreload(() => import('@/components/PropertyInfo/Pr
 const AsphaltDetector = lazyWithPreload(() => import('@/components/Map/AsphaltDetector'));
 const EnhancedAsphaltDetector = lazyWithPreload(() => import('@/components/Map/EnhancedAsphaltDetector'));
 const OverlayManager = lazyWithPreload(() => import('@/components/Map/OverlayManager'));
+const PrintComposer = lazyWithPreload(() => import('@/components/Map/PrintComposer'));
 
 const ServiceInfo = lazyWithPreload(() => import('@/components/ServiceInfo/ServiceInfo'));
 
@@ -35,6 +36,7 @@ const Index = () => {
   const [workspaceName, setWorkspaceName] = useState('default');
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
+  const [showPrintComposer, setShowPrintComposer] = useState(false);
 
   // Map reference for communication with map component
   const mapRef = useRef<FreeMapContainerRef | null>(null);
@@ -293,13 +295,22 @@ const Index = () => {
           {/* Enhanced Measurement Tools */}
           <MeasurementToolbar
             activeTool={activeTool}
-            onToolChange={setActiveTool}
+            onToolChange={(tool) => {
+              if (tool === 'print') {
+                setShowPrintComposer(true);
+              } else {
+                setActiveTool(tool);
+              }
+            }}
             currentMeasurement={currentMeasurement}
             layerStates={layerStates}
             onLayerToggle={handleLayerToggle}
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
           />
+          {showPrintComposer && (
+            <PrintComposer mapRef={mapRef} onClose={() => setShowPrintComposer(false)} />
+          )}
           
           {/* Enhanced Property Information Panel */}
           <PropertyPanel

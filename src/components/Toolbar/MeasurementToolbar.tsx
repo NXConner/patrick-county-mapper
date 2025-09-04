@@ -90,6 +90,13 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
       icon: <MapPin className="w-4 h-4" />,
       description: 'Add point markers',
       color: 'bg-orange-500/20 text-orange-600 border-orange-500/30'
+    },
+    {
+      id: 'print',
+      name: 'Print',
+      icon: <Download className="w-4 h-4" />,
+      description: 'Open print composer',
+      color: 'bg-sky-500/20 text-sky-600 border-sky-500/30'
     }
   ];
 
