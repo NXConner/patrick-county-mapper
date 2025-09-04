@@ -219,6 +219,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                     <span className="text-sm font-bold text-primary">{currentMeasurement.distance.toFixed(2)} ft</span>
                   </div>
                 )}
+                {/* Placeholders for bearing/UTM/DMS readouts rendered by map overlay */}
               </div>
             </div>
           )}

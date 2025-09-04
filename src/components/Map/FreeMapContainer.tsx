@@ -62,6 +62,7 @@ export interface FreeMapContainerRef {
   centerOnGpsLocation: () => void;
   getDrawingGeoJSON: () => GeoJSON.FeatureCollection | null;
   loadDrawingGeoJSON: (data: GeoJSON.FeatureCollection) => void;
+  getMapContainerElement: () => HTMLDivElement | null;
 }
 
 const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(({ 
@@ -97,6 +98,13 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const parcelsGroup = useRef<L.LayerGroup | null>(null);
   const overpassAbortController = useRef<AbortController | null>(null);
   const clusterGroup = useRef<L.MarkerClusterGroup | null>(null as unknown as L.MarkerClusterGroup);
+
+  // Measurement state
+  const [measurementPoints, setMeasurementPoints] = useState<L.LatLng[]>([]);
+  const tempLine = useRef<L.Polyline | null>(null);
+  const tempPolygon = useRef<L.Polygon | null>(null);
+  const [bearingDeg, setBearingDeg] = useState<number | null>(null);
+  const [cursorDms, setCursorDms] = useState<string | null>(null);
 
   // Expanded coverage area including all surrounding counties
   const coverageCenter = useMemo<[number, number]>(() => [36.6837, -80.2876], []); // Patrick County center
@@ -354,7 +362,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       if (bounds.isValid()) {
         map.current.fitBounds(bounds.pad(0.1));
       }
-    }
+    },
+    getMapContainerElement: () => mapContainer.current
   }), [handleLocationSearch, toggleLayer, centerOnGpsLocation, layerStates]);
 
   // Patrick County, VA coordinates
@@ -830,6 +839,57 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     const handleMapClick = (e: L.LeafletMouseEvent) => {
       if (activeTool === 'point') {
         addMarker(e.latlng);
+      } else if (activeTool === 'line') {
+        setMeasurementPoints((prev) => {
+          const next = [...prev, e.latlng];
+          if (tempLine.current) {
+            tempLine.current.setLatLngs(next);
+          } else if (map.current) {
+            tempLine.current = L.polyline(next, { color: '#7c3aed', weight: 3 }).addTo(map.current);
+          }
+          if (next.length >= 2) {
+            const total = next.reduce((sum, cur, idx) => {
+              if (idx === 0) return 0;
+              return sum + cur.distanceTo(next[idx - 1]);
+            }, 0);
+            onMeasurement?.({ distance: total * 3.28084 });
+            const a = next[next.length - 2];
+            const b = next[next.length - 1];
+            const brg = Math.atan2(
+              Math.sin((b.lng - a.lng) * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180),
+              Math.cos(a.lat * Math.PI / 180) * Math.sin(b.lat * Math.PI / 180) -
+              Math.sin(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.cos((b.lng - a.lng) * Math.PI / 180)
+            ) * 180 / Math.PI;
+            setBearingDeg((brg + 360) % 360);
+          }
+          return next;
+        });
+      } else if (activeTool === 'polygon') {
+        setMeasurementPoints((prev) => {
+          const next = [...prev, e.latlng];
+          if (tempPolygon.current) {
+            tempPolygon.current.setLatLngs(next);
+          } else if (map.current) {
+            tempPolygon.current = L.polygon(next, { color: '#10b981', weight: 2, fillOpacity: 0.2 }).addTo(map.current);
+          }
+          if (next.length >= 3) {
+            // Approximate planar area; acceptable at local scale
+            let areaMeters = 0;
+            for (let i = 1; i < next.length - 1; i++) {
+              const a = next[0];
+              const b = next[i];
+              const c = next[i + 1];
+              const ab = a.distanceTo(b);
+              const ac = a.distanceTo(c);
+              const bc = b.distanceTo(c);
+              const s = (ab + ac + bc) / 2;
+              const tri = Math.max(s * (s - ab) * (s - ac) * (s - bc), 0);
+              areaMeters += Math.sqrt(tri);
+            }
+            onMeasurement?.({ area: areaMeters * 10.7639 });
+          }
+          return next;
+        });
       }
     };
 
@@ -841,6 +901,24 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       }
     };
   }, [activeTool]);
+
+  // Cursor coordinate DMS readout
+  useEffect(() => {
+    if (!map.current) return;
+    const update = (e: L.LeafletMouseEvent) => {
+      const toDms = (deg: number, pos: string, neg: string) => {
+        const d = Math.floor(Math.abs(deg));
+        const mFloat = (Math.abs(deg) - d) * 60;
+        const m = Math.floor(mFloat);
+        const s = ((mFloat - m) * 60).toFixed(2);
+        const hemi = deg >= 0 ? pos : neg;
+        return `${d}°${m}'${s}" ${hemi}`;
+      };
+      setCursorDms(`${toDms(e.latlng.lat, 'N', 'S')} ${toDms(e.latlng.lng, 'E', 'W')}`);
+    };
+    map.current.on('mousemove', update);
+    return () => { map.current?.off('mousemove', update); };
+  }, [mapLoaded]);
 
   return (
     <div className="relative w-full h-full">
@@ -895,6 +973,16 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         <p className="text-[8px] sm:text-[10px] text-muted-foreground">
           {mapService === 'esri-satellite' ? 'High-res satellite imagery' : 'Open source mapping'}
         </p>
+      </div>
+
+      {/* Measurement HUD */}
+      <div className="absolute bottom-4 left-4 z-40 bg-gis-toolbar text-foreground rounded-lg px-3 py-2 text-xs shadow-floating space-y-1">
+        {bearingDeg !== null && (
+          <div>Bearing: {bearingDeg.toFixed(1)}°</div>
+        )}
+        {cursorDms && (
+          <div>Cursor: {cursorDms}</div>
+        )}
       </div>
     </div>
   );
