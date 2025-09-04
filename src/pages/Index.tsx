@@ -8,6 +8,7 @@ import { useGpsLocation } from '@/hooks/useGpsLocation';
 import { lazyWithPreload } from '@/lib/lazyWithPreload';
 import type { FreeMapContainerRef } from '@/components/Map/FreeMapContainer';
 import type { FreeMapContainerProps } from '@/components/Map/FreeMapContainer';
+import { getStateFromUrl, setStateInUrl } from '@/lib/urlState';
 
 // Lazy load heavy components
 const FreeMapContainer = lazyWithPreload(() => import('@/components/Map/FreeMapContainer'));
@@ -59,8 +60,25 @@ const Index = () => {
   // Hydrate selected map service from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('selected-map-service');
-      if (stored) setSelectedMapService(stored);
+      // URL state has priority if present
+      const urlState = getStateFromUrl();
+      if (urlState) {
+        if (urlState.svc) setSelectedMapService(urlState.svc);
+        if (urlState.layers) setLayerStates(prev => ({ ...prev, ...urlState.layers }));
+        // Defer map centering to first render where mapRef is ready
+        const id = window.setTimeout(() => {
+          try {
+            const map = mapRef.current?.getMap?.();
+            if (map) {
+              map.setView([urlState.lat, urlState.lng] as any, urlState.z);
+            }
+          } catch {}
+        }, 0);
+        return () => window.clearTimeout(id);
+      } else {
+        const stored = localStorage.getItem('selected-map-service');
+        if (stored) setSelectedMapService(stored);
+      }
     } catch {
       // localStorage not available or blocked; ignore persistence
     }
@@ -74,6 +92,15 @@ const Index = () => {
       // localStorage not available or blocked; ignore persistence
     }
   }, [selectedMapService]);
+
+  // Keep URL state in sync when map/layers/service change
+  useEffect(() => {
+    const map = mapRef.current?.getMap?.();
+    if (!map) return;
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    setStateInUrl({ lat: center.lat, lng: center.lng, z: zoom, svc: selectedMapService, layers: layerStates }, true);
+  }, [selectedMapService, layerStates]);
 
   const handleMeasurement = useCallback((measurement: { distance?: number; area?: number }) => {
     setCurrentMeasurement(measurement);
@@ -116,6 +143,16 @@ const Index = () => {
         ...prev,
         [layerId]: !prev[layerId]
       }));
+      // Update URL immediately after toggle
+      try {
+        const map = mapRef.current?.getMap?.();
+        if (map) {
+          const c = map.getCenter();
+          const z = map.getZoom();
+          const next = { ...layerStates, [layerId]: !layerStates[layerId as keyof typeof layerStates] } as any;
+          setStateInUrl({ lat: c.lat, lng: c.lng, z, svc: selectedMapService, layers: next }, true);
+        }
+      } catch {}
     }
   }, []);
 
