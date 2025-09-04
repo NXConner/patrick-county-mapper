@@ -18,6 +18,9 @@ const AsphaltDetector = lazyWithPreload(() => import('@/components/Map/AsphaltDe
 const EnhancedAsphaltDetector = lazyWithPreload(() => import('@/components/Map/EnhancedAsphaltDetector'));
 const OverlayManager = lazyWithPreload(() => import('@/components/Map/OverlayManager'));
 const PrintComposer = lazyWithPreload(() => import('@/components/Map/PrintComposer'));
+const VersionHistoryDialog = lazyWithPreload(() => import('@/components/Workspace/VersionHistoryDialog'));
+const BookmarksDialog = lazyWithPreload(() => import('@/components/Workspace/BookmarksDialog'));
+const EstimatorPanel = lazyWithPreload(() => import('@/components/Estimator/EstimatorPanel'));
 
 const ServiceInfo = lazyWithPreload(() => import('@/components/ServiceInfo/ServiceInfo'));
 
@@ -37,6 +40,10 @@ const Index = () => {
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
   const [showPrintComposer, setShowPrintComposer] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showEstimator, setShowEstimator] = useState(false);
+  const [lastAreaSqFt, setLastAreaSqFt] = useState<number | null>(null);
 
   // Map reference for communication with map component
   const mapRef = useRef<FreeMapContainerRef | null>(null);
@@ -104,6 +111,7 @@ const Index = () => {
 
   const handleMeasurement = useCallback((measurement: { distance?: number; area?: number }) => {
     setCurrentMeasurement(measurement);
+    if (typeof measurement.area === 'number') setLastAreaSqFt(measurement.area);
   }, []);
 
   const handleLocationSearch = useCallback((lat: number, lng: number, address: string) => {
@@ -310,6 +318,7 @@ const Index = () => {
                     toast.error('Failed to add bookmark');
                   }
                 }} title="Bookmark"><Bookmark className="w-3.5 h-3.5" /></Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowBookmarks(true)} title="Bookmarks">Bookmarks</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
                   try {
                     const map = mapRef.current?.getMap?.();
@@ -363,6 +372,8 @@ const Index = () => {
                     toast.error('Failed to queue AI job');
                   }
                 }} title="Queue AI Batch"><Play className="w-3.5 h-3.5" /></Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowVersionHistory(true)} title="Version History">History</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowEstimator(true)} title="Estimator">Estimate</Button>
               </div>
               <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground max-w-xs">
                 <div className="flex items-center gap-1">
@@ -481,6 +492,39 @@ const Index = () => {
           />
         </Suspense>
       </div>
+      {/* Dialogs */}
+      <Suspense>
+        {showVersionHistory && (
+          <VersionHistoryDialog
+            isOpen={showVersionHistory}
+            onClose={() => setShowVersionHistory(false)}
+            workspaceName={workspaceName}
+            onRestore={(v) => {
+              const ws = v.payload as any;
+              setSelectedMapService(ws.map.mapService);
+              setLayerStates(ws.map.layerStates);
+              const map = mapRef.current?.getMap?.();
+              map?.setView(ws.map.center as any, ws.map.zoom);
+              mapRef.current?.loadDrawingGeoJSON?.(ws.drawings);
+              setShowVersionHistory(false);
+              toast.success(`Restored version ${v.version}`);
+            }}
+          />
+        )}
+        {showBookmarks && (
+          <BookmarksDialog
+            isOpen={showBookmarks}
+            onClose={() => setShowBookmarks(false)}
+            onNavigate={(lat, lng, z) => {
+              const map = mapRef.current?.getMap?.();
+              map?.setView([lat, lng] as any, z);
+            }}
+          />
+        )}
+        {showEstimator && (
+          <EstimatorPanel isOpen={showEstimator} onClose={() => setShowEstimator(false)} areaSqFt={lastAreaSqFt} />
+        )}
+      </Suspense>
     </div>
   );
 };
