@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
 import { idbGet, idbSet } from '@/lib/idbCache';
 import { COUNTY_SOURCES } from '@/data/countySources';
+import { decodePolyline } from '@/lib/googleMaps';
 
 // Fix for default markers in Leaflet
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -60,9 +61,6 @@ export interface FreeMapContainerRef {
   getLayerStates: () => LayerStates;
   getMap: () => L.Map | null;
   centerOnGpsLocation: () => void;
-  getDrawingGeoJSON: () => GeoJSON.FeatureCollection | null;
-  loadDrawingGeoJSON: (data: GeoJSON.FeatureCollection) => void;
-  getMapContainerElement: () => HTMLDivElement | null;
 }
 
 const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(({ 
@@ -79,6 +77,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const drawnItems = useRef<L.FeatureGroup>(new L.FeatureGroup());
   const searchMarker = useRef<L.Marker | null>(null);
   const gpsMarker = useRef<L.Marker | null>(null);
+  const routeLayer = useRef<L.Polyline | null>(null);
+  const routeEndpoints = useRef<{ start?: L.Marker; end?: L.Marker }>({});
 
   // Layer state management
   const [layerStates, setLayerStates] = useState({
@@ -198,6 +198,80 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       onLocationSearch(lat, lng, address);
     }
   }, [onLocationSearch]);
+
+  // Show route polyline from Google Directions encoded polyline
+  const showRoute = useCallback((encodedPolyline: string, meta?: { distanceText?: string; durationText?: string }) => {
+    if (!map.current) return;
+
+    // Clear existing route first
+    if (routeLayer.current) {
+      map.current.removeLayer(routeLayer.current);
+      routeLayer.current = null;
+    }
+    if (routeEndpoints.current.start) {
+      map.current.removeLayer(routeEndpoints.current.start);
+      routeEndpoints.current.start = undefined;
+    }
+    if (routeEndpoints.current.end) {
+      map.current.removeLayer(routeEndpoints.current.end);
+      routeEndpoints.current.end = undefined;
+    }
+
+    const latlngs = decodePolyline(encodedPolyline).map(p => L.latLng(p.lat, p.lng));
+    if (latlngs.length === 0) return;
+
+    const poly = L.polyline(latlngs, {
+      color: '#2563eb',
+      weight: 5,
+      opacity: 0.85,
+      lineJoin: 'round',
+      lineCap: 'round',
+    }).addTo(map.current);
+    routeLayer.current = poly;
+
+    // Start and end markers
+    const startMarker = L.circleMarker(latlngs[0], {
+      radius: 6,
+      color: '#10b981',
+      fillColor: '#10b981',
+      fillOpacity: 1,
+      weight: 2
+    }).addTo(map.current);
+    const endMarker = L.circleMarker(latlngs[latlngs.length - 1], {
+      radius: 6,
+      color: '#ef4444',
+      fillColor: '#ef4444',
+      fillOpacity: 1,
+      weight: 2
+    }).addTo(map.current);
+    routeEndpoints.current = { start: startMarker as unknown as L.Marker, end: endMarker as unknown as L.Marker };
+
+    const bounds = poly.getBounds();
+    map.current.fitBounds(bounds.pad(0.2));
+
+    if (meta?.distanceText || meta?.durationText) {
+      toast.success('Route ready', {
+        description: `${meta.distanceText || ''}${meta.distanceText && meta.durationText ? ' · ' : ''}${meta.durationText || ''}`.trim()
+      });
+    }
+  }, []);
+
+  const clearRoute = useCallback(() => {
+    if (!map.current) return;
+    if (routeLayer.current) {
+      map.current.removeLayer(routeLayer.current);
+      routeLayer.current = null;
+    }
+    if (routeEndpoints.current.start) {
+      map.current.removeLayer(routeEndpoints.current.start);
+      routeEndpoints.current.start = undefined;
+    }
+    if (routeEndpoints.current.end) {
+      map.current.removeLayer(routeEndpoints.current.end);
+      routeEndpoints.current.end = undefined;
+    }
+    toast.success('Route cleared');
+  }, []);
 
   // Create overlay layers
   const createOverlayLayers = useCallback(() => {
@@ -346,25 +420,6 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     getLayerStates: () => layerStates,
     getMap: () => map.current,
     centerOnGpsLocation,
-    getDrawingGeoJSON: () => {
-      try {
-        return drawnItems.current?.toGeoJSON() as unknown as GeoJSON.FeatureCollection;
-      } catch {
-        return null;
-      }
-    },
-    loadDrawingGeoJSON: (data: GeoJSON.FeatureCollection) => {
-      if (!map.current || !data) return;
-      const layer = L.geoJSON(data);
-      drawnItems.current?.clearLayers();
-      layer.addTo(drawnItems.current);
-      const bounds = layer.getBounds();
-      if (bounds.isValid()) {
-        map.current.fitBounds(bounds.pad(0.1));
-      }
-    },
-    getMapContainerElement: () => mapContainer.current
-  }), [handleLocationSearch, toggleLayer, centerOnGpsLocation, layerStates]);
 
   // Patrick County, VA coordinates
   const patrickCountyCenter: [number, number] = [36.6837, -80.2876];
