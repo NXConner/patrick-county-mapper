@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import MapServiceDropdown from '@/components/Map/MapServiceDropdown';
 import AddressSearchBar from '@/components/Map/AddressSearchBar';
-import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star, Layers, FileText, X } from 'lucide-react';
+import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star, Layers, FileText, X, Bookmark, Save, History, Play } from 'lucide-react';
 import { useGpsLocation } from '@/hooks/useGpsLocation';
 import { lazyWithPreload } from '@/lib/lazyWithPreload';
 import type { FreeMapContainerRef } from '@/components/Map/FreeMapContainer';
@@ -294,6 +294,75 @@ const Index = () => {
                 />
                 <Button variant="secondary" size="sm" onClick={saveWorkspace} className="text-xs">Save</Button>
                 <Button variant="secondary" size="sm" onClick={loadWorkspace} className="text-xs">Load</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
+                  try {
+                    const map = mapRef.current?.getMap?.();
+                    if (!map) return;
+                    const c = map.getCenter();
+                    const z = map.getZoom();
+                    const title = prompt('Bookmark title?') || `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)} @ ${z}`;
+                    const { setStateInUrl } = await import('@/lib/urlState');
+                    setStateInUrl({ lat: c.lat, lng: c.lng, z, svc: selectedMapService, layers: layerStates }, true);
+                    const { BookmarksService } = await import('@/services/BookmarksService');
+                    await BookmarksService.add(title, { lat: c.lat, lng: c.lng, z, svc: selectedMapService, layers: layerStates });
+                    toast.success('Bookmarked');
+                  } catch (e) {
+                    toast.error('Failed to add bookmark');
+                  }
+                }} title="Bookmark"><Bookmark className="w-3.5 h-3.5" /></Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
+                  try {
+                    const map = mapRef.current?.getMap?.();
+                    if (!map) return;
+                    const center = map.getCenter();
+                    const state = {
+                      name: workspaceName,
+                      createdAt: new Date().toISOString(),
+                      map: {
+                        center: [center.lat, center.lng] as [number, number],
+                        zoom: map.getZoom(),
+                        mapService: selectedMapService,
+                        layerStates
+                      },
+                      drawings: mapRef.current?.getDrawingGeoJSON?.() || null
+                    };
+                    const { WorkspaceVersionsService } = await import('@/services/WorkspaceVersionsService');
+                    await WorkspaceVersionsService.createVersion(workspaceName, state as any);
+                    toast.success('Version saved');
+                  } catch {
+                    toast.error('Failed to save version');
+                  }
+                }} title="Save Version"><Save className="w-3.5 h-3.5" /></Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
+                  try {
+                    const { WorkspaceVersionsService } = await import('@/services/WorkspaceVersionsService');
+                    const latest = await WorkspaceVersionsService.getLatestVersion(workspaceName);
+                    if (!latest) { toast.info('No versions yet'); return; }
+                    const ws = latest.payload as any;
+                    setSelectedMapService(ws.map.mapService);
+                    setLayerStates(ws.map.layerStates);
+                    const map = mapRef.current?.getMap?.();
+                    map?.setView(ws.map.center as any, ws.map.zoom);
+                    mapRef.current?.loadDrawingGeoJSON?.(ws.drawings);
+                    toast.success(`Restored version ${latest.version}`);
+                  } catch {
+                    toast.error('Failed to restore version');
+                  }
+                }} title="Restore Latest"><History className="w-3.5 h-3.5" /></Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
+                  try {
+                    const map = mapRef.current?.getMap?.();
+                    if (!map) return;
+                    const b = map.getBounds();
+                    const aoi = { bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] };
+                    const params = { surfaces: ['asphalt'], detail: 'standard' };
+                    const { AiJobsService } = await import('@/services/AiJobsService');
+                    const id = await AiJobsService.queue(aoi, params);
+                    toast.success('AI job queued', { description: id });
+                  } catch {
+                    toast.error('Failed to queue AI job');
+                  }
+                }} title="Queue AI Batch"><Play className="w-3.5 h-3.5" /></Button>
               </div>
               <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground max-w-xs">
                 <div className="flex items-center gap-1">
