@@ -18,11 +18,21 @@ export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt }) =
 
   useEffect(() => {
     if (!isOpen) return;
-    CostCatalogService.getDefault().then((cat) => {
+    CostCatalogService.getDefault().then(async (cat) => {
       setCatalog(cat);
       if (cat) {
         const asphalt = cat.items.find(i => /asphalt/i.test(i.name) || /pave/i.test(i.name));
         if (asphalt) setUnitCost(Number(asphalt.unit_cost) || FALLBACK_UNIT_COST);
+      } else {
+        // Seed a tiny default if none exists
+        try {
+          const id = await CostCatalogService.createCatalog('Default', true);
+          await CostCatalogService.addItem(id, { code: 'ASPHALT_STD', name: 'Asphalt Paving (standard)', unit: 'sqft', unit_cost: FALLBACK_UNIT_COST, material_type: 'asphalt', notes: 'Seeded default' });
+          const seeded = await CostCatalogService.getCatalog(id);
+          setCatalog(seeded);
+        } catch {
+          // ignore failures; fallback rate remains
+        }
       }
     });
   }, [isOpen]);

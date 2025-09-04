@@ -21,6 +21,7 @@ const PrintComposer = lazyWithPreload(() => import('@/components/Map/PrintCompos
 const VersionHistoryDialog = lazyWithPreload(() => import('@/components/Workspace/VersionHistoryDialog'));
 const BookmarksDialog = lazyWithPreload(() => import('@/components/Workspace/BookmarksDialog'));
 const EstimatorPanel = lazyWithPreload(() => import('@/components/Estimator/EstimatorPanel'));
+const AiJobsDialog = lazyWithPreload(() => import('@/components/AI/AiJobsDialog'));
 
 const ServiceInfo = lazyWithPreload(() => import('@/components/ServiceInfo/ServiceInfo'));
 
@@ -44,6 +45,7 @@ const Index = () => {
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [showEstimator, setShowEstimator] = useState(false);
   const [lastAreaSqFt, setLastAreaSqFt] = useState<number | null>(null);
+  const [showAiJobs, setShowAiJobs] = useState(false);
 
   // Map reference for communication with map component
   const mapRef = useRef<FreeMapContainerRef | null>(null);
@@ -372,6 +374,7 @@ const Index = () => {
                     toast.error('Failed to queue AI job');
                   }
                 }} title="Queue AI Batch"><Play className="w-3.5 h-3.5" /></Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowAiJobs(true)} title="AI Jobs">AI Jobs</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowVersionHistory(true)} title="Version History">History</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowEstimator(true)} title="Estimator">Estimate</Button>
               </div>
@@ -523,6 +526,9 @@ const Index = () => {
         )}
         {showEstimator && (
           <EstimatorPanel isOpen={showEstimator} onClose={() => setShowEstimator(false)} areaSqFt={lastAreaSqFt} />
+        )}
+        {showAiJobs && (
+          <AiJobsDialog isOpen={showAiJobs} onClose={() => setShowAiJobs(false)} />
         )}
       </Suspense>
     </div>

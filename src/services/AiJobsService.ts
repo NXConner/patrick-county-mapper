@@ -13,13 +13,20 @@ export interface AiJob {
 export class AiJobsService {
   static async queue(aoi: Record<string, unknown>, params: Record<string, unknown> = {}): Promise<string> {
     const user = (await supabase.auth.getUser()).data.user;
-    const { data, error } = await supabase
-      .from('ai_jobs')
-      .insert({ aoi, params, created_by: user?.id ?? null })
-      .select('id')
-      .single();
-    if (error) throw error;
-    return data.id as string;
+    try {
+      const { data, error } = await supabase
+        .from('ai_jobs')
+        .insert({ aoi, params, created_by: user?.id ?? null })
+        .select('id')
+        .single();
+      if (error) throw error;
+      return data.id as string;
+    } catch (e) {
+      // Fallback to offline queue
+      const { OfflineQueueService } = await import('./OfflineQueueService');
+      await OfflineQueueService.enqueue({ id: crypto.randomUUID(), type: 'ai_job_insert', payload: { aoi, params, created_by: user?.id ?? null }, createdAt: Date.now() });
+      return 'offline-queued';
+    }
   }
 
   static async get(id: string): Promise<AiJob | null> {
