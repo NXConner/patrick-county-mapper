@@ -18,6 +18,14 @@ const IDB_KEY_PREFIX = 'workspace:';
 const IDB_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
 
 export class WorkspaceService {
+    static async upsert(name: string, payload: Record<string, unknown>): Promise<void> {
+        const user = (await supabase.auth.getUser()).data.user;
+        if (!user) throw new Error('Not authenticated');
+        await supabase
+            .from('workspaces')
+            .upsert({ name, payload, created_by: user.id }, { onConflict: 'name' as any })
+            .throwOnError();
+    }
 	static async save(state: WorkspaceState): Promise<void> {
 		// Try Supabase first
 		try {
