@@ -25,6 +25,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { COUNTY_SOURCES } from '@/data/countySources';
+import { PropertyService } from '@/services/PropertyService';
 
 interface PropertyInfo {
   parcelId?: string;
@@ -44,6 +45,7 @@ interface PropertyPanelProps {
 const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propertyInfo }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'search' | 'details' | 'sources' | 'actions'>('search');
+  const [results, setResults] = useState<Array<{ parcel_id: string; owner_name: string | null; property_address: string | null }>>([]);
 
   type PanelTabId = 'search' | 'details' | 'sources' | 'actions';
   const panelTabs: { id: PanelTabId; label: string; icon: JSX.Element }[] = [
@@ -53,9 +55,10 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
     { id: 'actions', label: 'Actions', icon: <Settings className="w-4 h-4" /> },
   ];
 
-  const handleSearch = () => {
-    // Integrated with real Patrick County property database
-    console.log('Searching for:', searchTerm);
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) return;
+    const r = await PropertyService.search(searchTerm.trim());
+    setResults(r.map(x => ({ parcel_id: x.parcel_id, owner_name: x.owner_name, property_address: x.property_address })));
   };
 
   // Enhanced Panel content component
@@ -136,6 +139,27 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
               </Button>
             </div>
           </div>
+          {results.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Results</h4>
+              <div className="space-y-1">
+                {results.map(r => (
+                  <div key={r.parcel_id} className="flex items-center justify-between p-2 rounded border">
+                    <div className="text-sm">
+                      <div className="font-medium">{r.parcel_id}</div>
+                      <div className="text-muted-foreground">{r.owner_name || '—'}</div>
+                      <div className="text-muted-foreground">{r.property_address || '—'}</div>
+                    </div>
+                    <Button size="sm" onClick={async () => {
+                      const full = await PropertyService.getByParcel(r.parcel_id);
+                      if (!full) return;
+                      alert(`${full.parcel_id}\n${full.owner_name || ''}\n${full.property_address || ''}`);
+                    }}>Open</Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
