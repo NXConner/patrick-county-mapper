@@ -309,6 +309,8 @@ const Index = () => {
                   {gpsLoading ? 'Locating...' : 'Locate Me'}
                 </span>
               </Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => { window.location.href = '/analytics'; }}>Analytics</Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => { window.location.href = '/billing'; }}>Billing</Button>
               <div className="hidden md:flex items-center gap-2">
                 <input
                   className="px-2 py-1 rounded border text-xs bg-background"

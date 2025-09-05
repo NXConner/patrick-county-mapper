@@ -12,6 +12,7 @@ import { OfflineQueueService } from "@/services/OfflineQueueService";
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AnalyticsDashboard = lazy(() => import("@/components/Analytics/AnalyticsDashboard"));
+const Billing = lazy(() => import("@/pages/Billing"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -91,6 +92,7 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/analytics" element={<AnalyticsDashboard properties={[]} measurements={[]} />} />
+                <Route path="/billing" element={<Billing />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
