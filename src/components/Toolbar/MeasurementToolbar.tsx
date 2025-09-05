@@ -102,6 +102,8 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
     }
   ];
 
+  const [snapping, setSnapping] = useState(false);
+
   // Dynamic layer controls based on current state
   const layerControls = [
     {
@@ -234,6 +236,12 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
               </div>
             </div>
           )}
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Snapping</span>
+            <button className={`px-3 py-1 rounded text-xs ${snapping ? 'bg-primary text-primary-foreground' : 'bg-muted'}`} onClick={() => setSnapping(!snapping)}>
+              {snapping ? 'On' : 'Off'}
+            </button>
+          </div>
         </div>
       )}
 
