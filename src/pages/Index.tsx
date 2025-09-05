@@ -1,4 +1,5 @@
 import React, { useState, useRef, Suspense, lazy, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import MapServiceDropdown from '@/components/Map/MapServiceDropdown';
@@ -33,6 +34,7 @@ const OverlayLegend = lazyWithPreload(() => import('@/components/Map/OverlayLege
 const ServiceInfo = lazyWithPreload(() => import('@/components/ServiceInfo/ServiceInfo'));
 
 const Index = () => {
+  const navigate = useNavigate();
   const [activeTool, setActiveTool] = useState('select');
   const [currentMeasurement, setCurrentMeasurement] = useState<{ distance?: number; area?: number }>();
   const [propertyPanelOpen, setPropertyPanelOpen] = useState(false);
@@ -312,8 +314,8 @@ const Index = () => {
                   {gpsLoading ? 'Locating...' : 'Locate Me'}
                 </span>
               </Button>
-              <Button variant="outline" size="sm" className="text-xs" onClick={() => { window.location.href = '/analytics'; }}>Analytics</Button>
-              <Button variant="outline" size="sm" className="text-xs" onClick={() => { window.location.href = '/billing'; }}>Billing</Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate('/analytics')}>Analytics</Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate('/billing')}>Billing</Button>
               <div className="hidden md:flex items-center gap-2">
                 <input
                   className="px-2 py-1 rounded border text-xs bg-background"
