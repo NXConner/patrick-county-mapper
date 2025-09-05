@@ -463,6 +463,7 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             gpsLocation={gpsLocation}
             readOnly={isViewer}
+            snappingEnabled={false}
           />
 
           {/* Directions meta overlay */}

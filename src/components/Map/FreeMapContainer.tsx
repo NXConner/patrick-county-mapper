@@ -55,6 +55,7 @@ export interface FreeMapContainerProps {
   onPropertySelect?: (property: PropertyInfo) => void;
   gpsLocation?: { latitude: number; longitude: number } | null;
   readOnly?: boolean;
+  snappingEnabled?: boolean;
 }
 
 export interface FreeMapContainerRef {
@@ -71,7 +72,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   mapService = 'esri-satellite',
   onLocationSearch,
   gpsLocation,
-  readOnly
+  readOnly,
+  snappingEnabled
 }, ref) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -947,11 +949,20 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
 
     const handleMapClick = (e: L.LeafletMouseEvent) => {
       if (readOnly) return;
+      const snap = (latlng: L.LatLng): L.LatLng => {
+        if (!snappingEnabled || !map.current) return latlng;
+        const z = map.current.getZoom();
+        let step = 1e-4;
+        if (z >= 18) step = 1e-5; else if (z >= 16) step = 5e-5;
+        const s = (v: number) => Math.round(v / step) * step;
+        return L.latLng(s(latlng.lat), s(latlng.lng));
+      };
+      const latlng = snap(e.latlng);
       if (activeTool === 'point') {
-        addMarker(e.latlng);
+        addMarker(latlng);
       } else if (activeTool === 'line') {
         setMeasurementPoints((prev) => {
-          const next = [...prev, e.latlng];
+          const next = [...prev, latlng];
           if (tempLine.current) {
             tempLine.current.setLatLngs(next);
           } else if (map.current) {
@@ -976,7 +987,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         });
       } else if (activeTool === 'polygon') {
         setMeasurementPoints((prev) => {
-          const next = [...prev, e.latlng];
+          const next = [...prev, latlng];
           if (tempPolygon.current) {
             tempPolygon.current.setLatLngs(next);
           } else if (map.current) {
