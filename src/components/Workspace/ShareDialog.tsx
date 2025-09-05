@@ -15,6 +15,7 @@ export const ShareDialog: React.FC<Props> = ({ isOpen, onClose, workspaceName })
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
   const [userId, setUserId] = useState('');
   const [role, setRole] = useState<WorkspaceRole>('viewer');
+  const [suggestions, setSuggestions] = useState<Array<{ id: string; email: string }>>([]);
 
   const refresh = () => {
     WorkspaceMembersService.list(workspaceName).then(setMembers);
@@ -29,8 +30,14 @@ export const ShareDialog: React.FC<Props> = ({ isOpen, onClose, workspaceName })
           <DialogTitle>Share Workspace</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Input placeholder="User ID or Email" value={userId} onChange={(e) => setUserId(e.target.value)} />
+          <div className="space-y-1">
+            <Input placeholder="User ID or Email" value={userId} onChange={async (e) => {
+              const v = e.target.value; setUserId(v);
+              if (v.includes('@') && v.length >= 3) {
+                const { data } = await supabase.from('profiles').select('id, email').ilike('email', `%${v}%`).limit(5);
+                setSuggestions((data || []).map(d => ({ id: d.id as any, email: d.email as any })));
+              } else setSuggestions([]);
+            }} />
             <select className="border rounded px-2 py-1" value={role} onChange={(e) => setRole(e.target.value as WorkspaceRole)}>
               <option value="viewer">Viewer</option>
               <option value="editor">Editor</option>
@@ -46,6 +53,19 @@ export const ShareDialog: React.FC<Props> = ({ isOpen, onClose, workspaceName })
               setUserId('');
               refresh();
             }}>Add</Button>
+            {suggestions.length > 0 && (
+              <div className="border rounded p-2 bg-muted/20">
+                {suggestions.map(s => (
+                  <div key={s.id} className="flex items-center justify-between py-1">
+                    <div className="text-sm">{s.email}</div>
+                    <Button size="sm" variant="secondary" onClick={async () => {
+                      await WorkspaceMembersService.add(workspaceName, s.id, role);
+                      setUserId(''); setSuggestions([]); refresh();
+                    }}>Add</Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="space-y-2 max-h-[40vh] overflow-auto">
             {members.length === 0 ? (

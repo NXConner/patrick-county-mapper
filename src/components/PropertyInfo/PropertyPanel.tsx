@@ -34,6 +34,9 @@ interface PropertyInfo {
   acreage?: number;
   taxValue?: number;
   zoning?: string;
+  sales?: Array<{ sale_date: string; sale_price: number; buyer_name?: string | null; seller_name?: string | null; deed_book?: string | null; deed_page?: string | null }>;
+  assessments?: Array<{ assessment_year: number; land_value?: number | null; improvement_value?: number | null; total_value?: number | null; exemptions?: number | null; taxable_value?: number | null }>;
+  utilities?: string[];
 }
 
 interface PropertyPanelProps {
@@ -228,6 +231,42 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
                       <span className="text-sm text-muted-foreground">Zoning:</span>
                     </div>
                     <Badge variant="secondary" className="text-sm">{propertyInfo.zoning}</Badge>
+                  </div>
+                )}
+                {propertyInfo.utilities && propertyInfo.utilities.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/20">
+                    <div className="text-sm font-medium mb-2">Utilities</div>
+                    <div className="flex flex-wrap gap-1">
+                      {propertyInfo.utilities.map((u, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">{u}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {propertyInfo.sales && propertyInfo.sales.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/20">
+                    <div className="text-sm font-medium mb-2">Sales History</div>
+                    <div className="space-y-1">
+                      {propertyInfo.sales.map((s, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span>{new Date(s.sale_date).toLocaleDateString()}</span>
+                          <span className="font-medium">${Math.round(s.sale_price).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {propertyInfo.assessments && propertyInfo.assessments.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/20">
+                    <div className="text-sm font-medium mb-2">Assessments</div>
+                    <div className="space-y-1">
+                      {propertyInfo.assessments.map((a, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span>{a.assessment_year}</span>
+                          <span className="font-medium">${Math.round(a.total_value || 0).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
