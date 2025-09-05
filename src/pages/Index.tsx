@@ -25,6 +25,7 @@ const EstimatorPanel = lazyWithPreload(() => import('@/components/Estimator/Esti
 const AiJobsDialog = lazyWithPreload(() => import('@/components/AI/AiJobsDialog'));
 const ShareDialog = lazyWithPreload(() => import('@/components/Workspace/ShareDialog'));
 const ExportHistoryDialog = lazyWithPreload(() => import('@/components/Export/ExportHistoryDialog'));
+const TilePrefetchDialog = lazyWithPreload(() => import('@/components/Offline/TilePrefetchDialog'));
 
 const ServiceInfo = lazyWithPreload(() => import('@/components/ServiceInfo/ServiceInfo'));
 
@@ -52,6 +53,7 @@ const Index = () => {
   const [showAiJobs, setShowAiJobs] = useState(false);
   const [showShare, setShowShare] = useState(false);
   const [showExportHistory, setShowExportHistory] = useState(false);
+  const [showPrefetch, setShowPrefetch] = useState(false);
   const { isViewer } = useWorkspaceRole(workspaceName);
 
   // Map reference for communication with map component
@@ -400,6 +402,7 @@ const Index = () => {
                 }} title="Copy Share Link">Copy Link</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowEstimator(true)} title="Estimator">Estimate</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowExportHistory(true)} title="Export History">Exports</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowPrefetch(true)} title="Offline Prefetch">Prefetch</Button>
               </div>
               <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground max-w-xs">
                 <div className="flex items-center gap-1">
@@ -583,6 +586,14 @@ const Index = () => {
         )}
         {showExportHistory && (
           <ExportHistoryDialog isOpen={showExportHistory} onClose={() => setShowExportHistory(false)} />
+        )}
+        {showPrefetch && (
+          <TilePrefetchDialog isOpen={showPrefetch} onClose={() => setShowPrefetch(false)} getViewport={() => {
+            const m = mapRef.current?.getMap?.();
+            if (!m) return null;
+            const b = m.getBounds();
+            return { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth(), zoom: m.getZoom() };
+          }} />
         )}
       </Suspense>
     </div>

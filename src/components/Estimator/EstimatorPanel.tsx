@@ -15,6 +15,8 @@ const FALLBACK_UNIT_COST = 4; // $/sqft default fallback
 
 export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt, surfaces }) => {
   const [catalog, setCatalog] = useState<CostCatalog | null>(null);
+  const [catalogs, setCatalogs] = useState<CostCatalog[]>([]);
+  const [template, setTemplate] = useState<'Driveway' | 'Parking Lot' | 'Custom'>('Custom');
   const [unitCost, setUnitCost] = useState<number>(FALLBACK_UNIT_COST);
   const [wastePct, setWastePct] = useState<number>(5);
   const [taxPct, setTaxPct] = useState<number>(0);
@@ -40,6 +42,13 @@ export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt, sur
         }
       }
     });
+    (async () => {
+      // fetch a couple of catalogs if present (simple approach)
+      const def = await CostCatalogService.getDefault();
+      const list: CostCatalog[] = [];
+      if (def) list.push(def);
+      setCatalogs(list);
+    })();
   }, [isOpen]);
 
   const subtotal = useMemo(() => {
@@ -112,6 +121,30 @@ export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt, sur
           <DialogTitle>Estimator</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-sm text-muted-foreground">Template</div>
+              <select className="border rounded px-2 py-1 w-full" value={template} onChange={(e) => setTemplate(e.target.value as any)}>
+                <option value="Driveway">Driveway</option>
+                <option value="Parking Lot">Parking Lot</option>
+                <option value="Custom">Custom</option>
+              </select>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Catalog</div>
+              <select className="border rounded px-2 py-1 w-full" value={catalog?.id || ''} onChange={async (e) => {
+                // in this minimal version, keep only default
+                const id = e.target.value;
+                if (!id) return;
+                const cat = await CostCatalogService.getCatalog(id);
+                if (cat) setCatalog(cat);
+              }}>
+                {catalogs.map(c => (
+                  <option key={c.id} value={c.id}>{c.region} {c.is_default ? '(Default)' : ''}</option>
+                ))}
+              </select>
+            </div>
+          </div>
           <div className="text-sm text-muted-foreground">Area (sq ft)</div>
           <div className="text-lg font-medium">{areaSqFt ? Math.round(areaSqFt).toLocaleString() : '—'}</div>
           <div className="text-sm text-muted-foreground">Unit cost ($/sq ft)</div>
