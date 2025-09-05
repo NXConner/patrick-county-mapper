@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { idbGet, idbSet } from '@/lib/idbCache';
 import { WorkspaceVersionsService } from './WorkspaceVersionsService';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface WorkspaceState {
 	name: string;
@@ -18,7 +19,7 @@ const IDB_KEY_PREFIX = 'workspace:';
 const IDB_TTL_MS = 1000 * 60 * 60 * 24 * 14; // 14 days
 
 export class WorkspaceService {
-    static async upsert(name: string, payload: Record<string, unknown>): Promise<void> {
+    static async upsert(name: string, payload: Json): Promise<void> {
         const user = (await supabase.auth.getUser()).data.user;
         if (!user) throw new Error('Not authenticated');
         await supabase
@@ -31,7 +32,7 @@ export class WorkspaceService {
 		try {
 			await supabase.from('workspaces').upsert({
 				name: state.name,
-				payload: state as unknown as Record<string, unknown>,
+				payload: state as unknown as Json,
 				updated_at: new Date().toISOString(),
 			}).throwOnError();
 			// Create a version entry

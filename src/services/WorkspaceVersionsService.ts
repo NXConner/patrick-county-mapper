@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { WorkspaceState } from './WorkspaceService';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface WorkspaceVersion {
   id: string;
@@ -15,7 +16,7 @@ export class WorkspaceVersionsService {
     const next = (current?.version ?? 0) + 1;
     const { error } = await supabase
       .from('workspace_versions')
-      .insert({ workspace_name: workspaceName, version: next, payload });
+      .insert({ workspace_name: workspaceName, version: next, payload: payload as unknown as Json });
     if (error) throw error;
     return next;
   }

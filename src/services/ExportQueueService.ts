@@ -1,9 +1,10 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 export type ExportJob = {
   id: string;
   export_type: 'png' | 'pdf' | 'report';
-  options: Record<string, unknown>;
+  options: Json;
   status: 'queued' | 'running' | 'succeeded' | 'failed';
   retries: number;
   max_retries: number;
@@ -11,11 +12,11 @@ export type ExportJob = {
 };
 
 export class ExportQueueService {
-  static async enqueue(export_type: ExportJob['export_type'], options: Record<string, unknown>) {
+  static async enqueue(export_type: ExportJob['export_type'], options: Json) {
     const user = (await supabase.auth.getUser()).data.user;
     const { data, error } = await supabase
       .from('export_queue')
-      .insert({ export_type, options, created_by: user?.id ?? null })
+      .insert({ export_type, options })
       .select('id')
       .single();
     if (error) throw error;

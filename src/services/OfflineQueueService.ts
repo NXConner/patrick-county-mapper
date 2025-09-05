@@ -1,4 +1,5 @@
 import { idbGet, idbSet } from '@/lib/idbCache';
+import type { Json } from '@/integrations/supabase/types';
 
 type OfflineTask = {
   id: string;
@@ -30,15 +31,15 @@ export class OfflineQueueService {
       ai_job_insert: async (payload: Record<string, unknown>) => {
         const { AiJobsService } = await import('./AiJobsService');
         await AiJobsService.queue(
-          (payload as any).aoi as Record<string, unknown>,
-          (payload as any).params as Record<string, unknown>
+          (payload as any).aoi as Json,
+          (payload as any).params as Json
         );
       },
       export_log_insert: async (payload: Record<string, unknown>) => {
         const { ExportLogsService } = await import('./ExportLogsService');
         await ExportLogsService.log(
           (payload as any).export_type as string,
-          (payload as any).options as Record<string, unknown>,
+          (payload as any).options as Json,
           (payload as any).status as any,
           (payload as any).error as string | undefined
         );
@@ -47,7 +48,7 @@ export class OfflineQueueService {
         const { WorkspaceService } = await import('./WorkspaceService');
         await WorkspaceService.upsert(
           (payload as any).name as string,
-          (payload as any).payload as Record<string, unknown>
+          (payload as any).payload as Json
         );
       },
     } as const;

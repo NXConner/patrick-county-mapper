@@ -1,7 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 export class ExportLogsService {
-  static async log(type: string, options: Record<string, unknown>, status: 'queued' | 'completed' | 'failed' = 'completed', error?: string): Promise<void> {
+  static async log(type: string, options: Json, status: 'queued' | 'completed' | 'failed' = 'completed', error?: string): Promise<void> {
     const user = (await supabase.auth.getUser()).data.user;
     try {
       const { error: err } = await supabase.from('export_logs').insert({ export_type: type, options, status, error, user_id: user?.id ?? null });

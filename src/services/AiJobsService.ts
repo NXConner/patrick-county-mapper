@@ -1,22 +1,23 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface AiJob {
   id: string;
   status: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
-  aoi: Record<string, unknown>;
-  params: Record<string, unknown>;
-  result?: Record<string, unknown> | null;
+  aoi: Json;
+  params: Json;
+  result?: Json | null;
   error?: string | null;
   created_at: string;
 }
 
 export class AiJobsService {
-  static async queue(aoi: Record<string, unknown>, params: Record<string, unknown> = {}): Promise<string> {
+  static async queue(aoi: Json, params: Json = {} as Json): Promise<string> {
     const user = (await supabase.auth.getUser()).data.user;
     try {
       const { data, error } = await supabase
         .from('ai_jobs')
-        .insert({ aoi, params, created_by: user?.id ?? null })
+        .insert({ aoi, params })
         .select('id')
         .single();
       if (error) throw error;
