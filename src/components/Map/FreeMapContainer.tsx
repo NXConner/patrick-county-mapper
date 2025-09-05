@@ -53,6 +53,7 @@ export interface FreeMapContainerProps {
   onLayerToggle?: (layerId: string) => void;
   onPropertySelect?: (property: PropertyInfo) => void;
   gpsLocation?: { latitude: number; longitude: number } | null;
+  readOnly?: boolean;
 }
 
 export interface FreeMapContainerRef {
@@ -68,7 +69,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   activeTool,
   mapService = 'esri-satellite',
   onLocationSearch,
-  gpsLocation
+  gpsLocation,
+  readOnly
 }, ref) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -892,6 +894,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     if (!map.current) return;
 
     const handleMapClick = (e: L.LeafletMouseEvent) => {
+      if (readOnly) return;
       if (activeTool === 'point') {
         addMarker(e.latlng);
       } else if (activeTool === 'line') {
