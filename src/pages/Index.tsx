@@ -62,6 +62,7 @@ const Index = () => {
   const [showBatchAoi, setShowBatchAoi] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const { isViewer } = useWorkspaceRole(workspaceName);
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
 
   // Map reference for communication with map component
   const mapRef = useRef<FreeMapContainerRef | null>(null);
@@ -284,7 +285,7 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Bottom row - Enhanced Search and Controls */}
+          {/* Bottom row - Enhanced Search and Controls (Right side controls) */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 lg:gap-6 controls-row no-scrollbar">
             <div className="flex-1 max-w-full sm:max-w-md">
               <AddressSearchBar onLocationSelect={handleLocationSearch} onGetDirections={handleGetDirections} />
@@ -444,7 +445,7 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* Main Content Area (room for left and right sections) */}
       <div className="flex-1 relative overflow-hidden">
         <Suspense fallback={
           <div className="h-full w-full flex items-center justify-center bg-muted/20">
@@ -460,7 +461,7 @@ const Index = () => {
             </div>
           </div>
         }>
-          {/* Map Component */}
+          {/* Map Component (center) */}
           <FreeMapContainer
             ref={mapRef}
             activeTool={activeTool}
@@ -476,6 +477,18 @@ const Index = () => {
             readOnly={isViewer}
             snappingEnabled={false}
           />
+          {/* Right-side Quick Actions panel */}
+          <div className="hidden md:flex flex-col gap-2 absolute top-4 right-4 z-50">
+            <Button size="sm" variant="secondary" className="text-xs" onClick={() => setPropertyPanelOpen((v) => !v)}>
+              Property Info
+            </Button>
+            <Button size="sm" variant="secondary" className="text-xs" onClick={() => setShowEstimator(true)}>
+              Estimator
+            </Button>
+            <Button size="sm" variant="secondary" className="text-xs" onClick={() => setShowExportHistory(true)}>
+              Exports
+            </Button>
+          </div>
           {/* Overlay Legend */}
           <OverlayLegend zoning={(layerStates as any).zoning} flood={(layerStates as any).flood} soils={(layerStates as any).soils} />
 
@@ -510,7 +523,7 @@ const Index = () => {
             />
           )}
 
-          {/* Enhanced Measurement Tools */}
+          {/* Enhanced Measurement Tools (Left sidebar and mobile sheet) */}
           <MeasurementToolbar
             activeTool={activeTool}
             onToolChange={(tool) => {
@@ -528,6 +541,8 @@ const Index = () => {
             readOnly={isViewer}
             snappingEnabled={false}
             onSnappingChange={() => {}}
+            sidebarOpen={leftSidebarOpen}
+            onSidebarOpenChange={setLeftSidebarOpen}
           />
           {showPrintComposer && (
             <PrintComposer mapRef={mapRef} onClose={() => setShowPrintComposer(false)} />
