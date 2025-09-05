@@ -40,9 +40,10 @@ interface PropertyPanelProps {
   isOpen: boolean;
   onToggle: () => void;
   propertyInfo?: PropertyInfo;
+  onOpenParcel?: (parcelId: string) => void;
 }
 
-const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propertyInfo }) => {
+const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propertyInfo, onOpenParcel }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'search' | 'details' | 'sources' | 'actions'>('search');
   const [results, setResults] = useState<Array<{ parcel_id: string; owner_name: string | null; property_address: string | null }>>([]);
@@ -150,11 +151,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
                       <div className="text-muted-foreground">{r.owner_name || '—'}</div>
                       <div className="text-muted-foreground">{r.property_address || '—'}</div>
                     </div>
-                    <Button size="sm" onClick={async () => {
-                      const full = await PropertyService.getByParcel(r.parcel_id);
-                      if (!full) return;
-                      alert(`${full.parcel_id}\n${full.owner_name || ''}\n${full.property_address || ''}`);
-                    }}>Open</Button>
+                    <Button size="sm" onClick={() => onOpenParcel?.(r.parcel_id)}>Open</Button>
                   </div>
                 ))}
               </div>

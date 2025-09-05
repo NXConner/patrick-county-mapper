@@ -522,6 +522,24 @@ const Index = () => {
               taxValue: 150000,
               zoning: "Residential"
             }}
+            onOpenParcel={async (parcelId) => {
+              const { PropertyService } = await import('@/services/PropertyService');
+              const rec = await PropertyService.getByParcel(parcelId);
+              if (rec) {
+                setSelectedProperty({
+                  parcelId: rec.parcel_id,
+                  owner: rec.owner_name || undefined,
+                  address: rec.property_address || undefined,
+                  acreage: rec.acreage || undefined,
+                  taxValue: rec.tax_value || undefined,
+                  zoning: rec.zoning || undefined,
+                });
+                if (rec.latitude && rec.longitude) {
+                  mapRef.current?.getMap?.()?.setView([rec.latitude as any, rec.longitude as any] as any, 18);
+                }
+                setPropertyPanelOpen(true);
+              }
+            }}
           />
         </Suspense>
       </div>
