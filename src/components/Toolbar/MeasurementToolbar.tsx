@@ -41,7 +41,8 @@ interface MeasurementToolbarProps {
   readOnly?: boolean;
   snappingEnabled?: boolean;
   onSnappingChange?: (enabled: boolean) => void;
-
+  sidebarOpen?: boolean;
+  onSidebarOpenChange?: (open: boolean) => void;
 }
 
 const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
@@ -55,10 +56,12 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   readOnly,
   snappingEnabled,
   onSnappingChange,
-
+  sidebarOpen,
+  onSidebarOpenChange,
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<'tools' | 'layers' | 'ai' | 'info'>('tools');
+  const isSidebarOpen = !!sidebarOpen;
 
   type TabId = 'tools' | 'layers' | 'ai' | 'info';
   const navTabs: { id: TabId; label: string; icon: JSX.Element }[] = [
@@ -187,7 +190,10 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">GIS Tools</h2>
         <Button
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={() => {
+            setIsMobileMenuOpen(false);
+            onSidebarOpenChange?.(false);
+          }}
           variant="ghost"
           size="sm"
           className="close-btn-enhanced"
@@ -227,6 +233,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                   if (readOnly && tool.id !== 'select' && tool.id !== 'print') return;
                   onToolChange(tool.id);
                   setIsMobileMenuOpen(false);
+                  onSidebarOpenChange?.(false);
                 }}
                 className={`h-16 p-3 flex flex-col items-center gap-2 transition-all duration-200 ${
                   activeTool === tool.id 
@@ -317,6 +324,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
               if (readOnly) return;
               onAsphaltDetection?.();
               setIsMobileMenuOpen(false);
+              onSidebarOpenChange?.(false);
             }}
             variant={showAsphaltDetector ? "default" : "outline"}
             size="sm"
@@ -436,6 +444,16 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
 
   return (
     <>
+      {/* Desktop: Toggle button for collapsible left sidebar */}
+      <div className="hidden sm:block">
+        <Button
+          size="sm"
+          className="fixed top-20 left-4 z-50 bg-gis-toolbar/95 backdrop-blur-md shadow-toolbar h-10 w-10 p-0 touch-manipulation btn-secondary-enhanced hover:shadow-floating"
+          onClick={() => onSidebarOpenChange?.(!isSidebarOpen)}
+        >
+          <Menu className="w-4 h-4" />
+        </Button>
+      </div>
       {/* Mobile: Enhanced Sheet/Drawer */}
       <div className="sm:hidden">
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
@@ -455,13 +473,15 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
         </Sheet>
       </div>
 
-      {/* Desktop: Enhanced Fixed Card */}
+      {/* Desktop: Collapsible Left Sidebar Panel */}
       <div className="hidden sm:block">
-        <Card className="absolute top-4 left-4 z-50 card-enhanced max-w-[320px] lg:max-w-[340px]">
-          <div className="p-4">
-            <ToolbarContent />
-          </div>
-        </Card>
+        <div className={`absolute top-4 left-4 z-50 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-[110%]'}`}>
+          <Card className="card-enhanced max-w-[320px] lg:max-w-[340px]">
+            <div className="p-4">
+              <ToolbarContent />
+            </div>
+          </Card>
+        </div>
       </div>
     </>
   );
