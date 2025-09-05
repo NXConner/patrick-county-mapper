@@ -130,8 +130,7 @@ class ComputerVisionService {
 
   // Analyze texture patterns for smooth surfaces
   private analyzeTexturePatterns(imageData: ImageData): number[][] {
-    // Implement texture analysis using local binary patterns or similar
-    // This would identify uniform, smooth surfaces characteristic of asphalt
+    // Placeholder for future texture analysis; return all regions as-is for now
     return [];
   }
 

@@ -115,6 +115,32 @@ The APK will be generated in `android/app/build/outputs/apk/debug/`
 - **Capacitor** for mobile app generation
 - **OpenStreetMap Nominatim** for free geocoding
 
+## ⚙️ Environment
+
+Create `.env` with required keys and optional flags:
+
+```bash
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_ANON_KEY=...
+# Dev-only workers to simulate background processing
+VITE_ENABLE_AI_WORKER=true
+VITE_ENABLE_EXPORT_WORKER=true
+# Optional: enable Stripe checkout on Billing page
+VITE_STRIPE_PK=pk_test_xxx
+```
+
+## 🗂 Overlays (WMS)
+
+Configure WMS overlays in `src/data/overlaySources.ts`:
+
+```ts
+export const OVERLAY_SOURCES = {
+  zoning: { url: 'https://example.com/geoserver/wms', layers: 'zoning:districts' },
+  flood: { url: 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/WmsServer', layers: '0' },
+  soils: { url: 'https://sdmdataaccess.nrcs.usda.gov/Spatial/SDM.wms', layers: 'MapUnitRaster' }
+}
+```
+
 ## 🎯 **Use Cases**
 
 - **Property surveying** and boundary measurement

@@ -45,9 +45,10 @@ export const ExportHistoryDialog: React.FC<Props> = ({ isOpen, onClose }) => {
   }, [logs, typeFilter, statusFilter, from, to]);
 
   const retry = async (log: ExportLog) => {
-    // For now just re-log the same entry as completed, placeholder for re-run action
-    const { ExportLogsService } = await import('@/services/ExportLogsService');
-    await ExportLogsService.log(log.export_type, {}, 'completed');
+    const { ExportQueueService } = await import('@/services/ExportQueueService');
+    try {
+      await ExportQueueService.enqueue(log.export_type as any, { retryOf: log.id });
+    } catch {}
   };
 
   return (
