@@ -30,7 +30,10 @@ interface LayerStates {
   roads: boolean;
   labels: boolean;
   property: boolean;
-  parcels?: boolean;
+  parcels: boolean;
+  zoning: boolean;
+  flood: boolean;
+  soils: boolean;
 }
 
 export interface PropertyInfo {
@@ -64,6 +67,11 @@ export interface FreeMapContainerRef {
   getLayerStates: () => LayerStates;
   getMap: () => L.Map | null;
   centerOnGpsLocation: () => void;
+  showRoute: (encodedPolyline: string, meta?: { distanceText?: string; durationText?: string }) => void;
+  clearRoute: () => void;
+  getDrawingGeoJSON: () => GeoJSON.FeatureCollection;
+  loadDrawingGeoJSON: (data: GeoJSON.FeatureCollection) => void;
+  getMapContainerElement: () => HTMLElement | null;
 }
 
 const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(({ 
@@ -341,8 +349,10 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       case 'property':
         if (newStates.property) {
           if (!propertyLayer.current) {
-            // defer to allow bounds to settle
-            schedulePropertyBoundaryLoad();
+      // defer to allow bounds to settle
+            loadPropertyBoundariesThrottled.current = window.setTimeout(() => {
+              loadPropertyBoundaries();
+            }, 500);
           } else if (map.current) {
             propertyLayer.current.addTo(map.current);
           }
@@ -467,7 +477,30 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     }
 
     toast.success(`${layerId.charAt(0).toUpperCase() + layerId.slice(1)} layer ${newStates[layerId as keyof LayerStates] ? 'enabled' : 'disabled'}`);
-  }, [layerStates, schedulePropertyBoundaryLoad]);
+  }, [layerStates]);
+
+  const getDrawingGeoJSON = useCallback((): GeoJSON.FeatureCollection => {
+    const geojson = drawnItems.current.toGeoJSON();
+    // Ensure we always return a FeatureCollection
+    if (geojson.type === 'FeatureCollection') {
+      return geojson;
+    }
+    return {
+      type: 'FeatureCollection',
+      features: geojson.type === 'Feature' ? [geojson] : []
+    };
+  }, []);
+
+  const loadDrawingGeoJSON = useCallback((data: GeoJSON.FeatureCollection) => {
+    drawnItems.current.clearLayers();
+    L.geoJSON(data).eachLayer((layer) => {
+      drawnItems.current.addLayer(layer);
+    });
+  }, []);
+
+  const getMapContainerElement = useCallback(() => {
+    return mapContainer.current;
+  }, []);
 
   // Expose layer controls to parent components
   useImperativeHandle(ref, () => ({
@@ -476,7 +509,11 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     getLayerStates: () => layerStates,
     getMap: () => map.current,
     centerOnGpsLocation,
-
+    showRoute,
+    clearRoute,
+    getDrawingGeoJSON,
+    loadDrawingGeoJSON,
+    getMapContainerElement
   }));
 
   // Patrick County, VA coordinates
@@ -702,7 +739,6 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     } catch (error) {
       const err = error as unknown;
       // ignore aborted requests silently
-      // @ts-expect-error: DOMException may not be available in all TS libs
       const isAbort = (err as { name?: string })?.name === 'AbortError' || (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError');
       if (!isAbort) {
         console.error('Error loading property boundaries:', err);
@@ -923,15 +959,11 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const addMarker = (latlng: L.LatLng) => {
     // Lazy-init marker clustering to avoid extra bundle on initial load
     if (!clusterGroup.current && map.current) {
-      // @ts-expect-error: dynamic plugin without types
       Promise.resolve(import('leaflet.markercluster')).then(() => {
-        // @ts-expect-error: plugin augments L
-        clusterGroup.current = L.markerClusterGroup({ chunkedLoading: true });
-        // @ts-expect-error
+        clusterGroup.current = (L as any).markerClusterGroup({ chunkedLoading: true });
         clusterGroup.current.addTo(map.current!);
         const marker = L.marker(latlng);
         marker.bindPopup('Sample location marker');
-        // @ts-expect-error
         clusterGroup.current.addLayer(marker);
       }).catch(() => {
         const marker = L.marker(latlng).addTo(drawnItems.current);
@@ -942,7 +974,6 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     if (clusterGroup.current) {
       const marker = L.marker(latlng);
       marker.bindPopup('Sample location marker');
-      // @ts-expect-error
       clusterGroup.current.addLayer(marker);
     } else {
       const marker = L.marker(latlng).addTo(drawnItems.current);

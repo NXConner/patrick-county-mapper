@@ -143,6 +143,7 @@ const Index = () => {
       return;
     }
     try {
+      const { computeDirections } = await import('@/lib/googleMaps');
       const res = await computeDirections(
         { lat: gpsLocation.latitude, lng: gpsLocation.longitude },
         { lat, lng },
@@ -196,11 +197,13 @@ const Index = () => {
       },
       drawings
     };
+    const { WorkspaceService } = await import('@/services/WorkspaceService');
     await WorkspaceService.save(payload);
     toast.success('Workspace saved');
   }, [workspaceName, selectedMapService, layerStates]);
 
   const loadWorkspace = useCallback(async () => {
+    const { WorkspaceService } = await import('@/services/WorkspaceService');
     const ws = await WorkspaceService.load(workspaceName);
     if (!ws) {
       toast.error('Workspace not found');
@@ -233,7 +236,7 @@ const Index = () => {
       (window as Window & { requestIdleCallback?: (cb: IdleRequestCallback, opts?: { timeout?: number }) => number })
         .requestIdleCallback?.(preload, { timeout: 2000 });
     } else {
-      const id = window.setTimeout(preload, 1500);
+      const id = setTimeout(preload, 1500);
       return () => window.clearTimeout(id);
     }
   }, []);
@@ -465,7 +468,7 @@ const Index = () => {
               setPropertyPanelOpen(true);
             }}
             mapService={selectedMapService}
-            layerStates={layerStates}
+            layerStates={{ ...layerStates, parcels: false, zoning: false, flood: false, soils: false }}
             onLayerToggle={handleLayerToggle}
             gpsLocation={gpsLocation}
             readOnly={isViewer}

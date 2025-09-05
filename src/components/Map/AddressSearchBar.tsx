@@ -124,7 +124,6 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
       setShowResults(true);
     } catch (error) {
       const err = error as unknown;
-      // @ts-expect-error: DOMException may not be available in all TS libs
       const isAbort = (err as { name?: string })?.name === 'AbortError' || (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError');
       if (isAbort) {
         // request was canceled

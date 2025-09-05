@@ -10,7 +10,7 @@ export function initGoogleMapsLoader(apiKey: string) {
     mapsLoader = new Loader({
       apiKey,
       version: 'weekly',
-      libraries: ['places', 'routes'] as unknown as string[],
+      libraries: ['places', 'routes'],
     });
   }
 }
@@ -55,7 +55,7 @@ export async function computeDirections(
   if (!route || !leg) return null;
 
   // Prefer overview polyline for simplicity
-  const polyline = route.overview_polyline?.getEncodedPath?.() || route.overview_polyline?.toString?.() || '';
+  const polyline = (route.overview_polyline as any)?.getEncodedPath?.() || (route.overview_polyline as any)?.toString?.() || '';
 
   return {
     polyline,

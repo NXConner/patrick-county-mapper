@@ -28,7 +28,7 @@ const Billing: React.FC = () => {
                   toast.error('Stripe not configured');
                   return;
                 }
-                const { loadStripe } = await import('@stripe/stripe-js');
+                const { loadStripe } = await import('@stripe/stripe-js') as any;
                 const stripe = await loadStripe(import.meta.env.VITE_STRIPE_PK as string);
                 const resp = await fetch('/api/create-checkout-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: p.id }) });
                 const session = await resp.json();
