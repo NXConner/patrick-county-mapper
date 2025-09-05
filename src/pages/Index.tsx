@@ -512,6 +512,8 @@ const Index = () => {
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
             readOnly={isViewer}
+            snappingEnabled={false}
+            onSnappingChange={() => {}}
           />
           {showPrintComposer && (
             <PrintComposer mapRef={mapRef} onClose={() => setShowPrintComposer(false)} />
