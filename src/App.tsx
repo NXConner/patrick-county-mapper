@@ -11,6 +11,7 @@ import { OfflineQueueService } from "@/services/OfflineQueueService";
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const AnalyticsDashboard = lazy(() => import("@/components/Analytics/AnalyticsDashboard"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -89,6 +90,7 @@ const App = () => {
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/analytics" element={<AnalyticsDashboard properties={[]} measurements={[]} />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
