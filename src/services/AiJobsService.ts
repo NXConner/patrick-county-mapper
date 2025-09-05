@@ -45,6 +45,18 @@ export class AiJobsService {
       .order('created_at', { ascending: false });
     return (data || []) as unknown as AiJob[];
   }
+
+  static async retry(id: string): Promise<void> {
+    const { data } = await supabase.from('ai_jobs').select('retries, max_retries').eq('id', id).single();
+    const retries = ((data as any)?.retries || 0) + 1;
+    const max = (data as any)?.max_retries || 3;
+    if (retries > max) throw new Error('Max retries reached');
+    await supabase.from('ai_jobs').update({ status: 'queued', retries }).eq('id', id);
+  }
+
+  static async cancel(id: string): Promise<void> {
+    await supabase.from('ai_jobs').update({ status: 'cancelled' }).eq('id', id);
+  }
 }
 
 export default AiJobsService;

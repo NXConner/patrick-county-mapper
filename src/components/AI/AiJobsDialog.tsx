@@ -33,12 +33,20 @@ export const AiJobsDialog: React.FC<Props> = ({ isOpen, onClose }) => {
           {jobs.length === 0 ? (
             <div className="text-sm text-muted-foreground">No jobs yet.</div>
           ) : jobs.map(j => (
-            <div key={j.id} className="flex items-center justify-between rounded border p-2">
-              <div className="text-sm">
-                <div className="font-medium">{j.status}</div>
-                <div className="text-muted-foreground">{new Date(j.created_at).toLocaleString()}</div>
+            <div key={j.id} className="rounded border p-2 space-y-1">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium">{j.status}</div>
+                <div className="text-xs text-muted-foreground">{new Date(j.created_at).toLocaleString()}</div>
               </div>
-              <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(j.id)}>Copy ID</Button>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="secondary" onClick={() => navigator.clipboard.writeText(j.id)}>Copy ID</Button>
+                {(j.status === 'failed' || j.status === 'cancelled') && (
+                  <Button size="sm" onClick={async () => { await AiJobsService.retry(j.id); }}>Retry</Button>
+                )}
+                {(j.status === 'queued' || j.status === 'running') && (
+                  <Button size="sm" variant="destructive" onClick={async () => { await AiJobsService.cancel(j.id); }}>Cancel</Button>
+                )}
+              </div>
             </div>
           ))}
         </div>
