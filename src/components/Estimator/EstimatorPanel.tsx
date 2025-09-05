@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CostCatalogService, type CostCatalog } from '@/services/CostCatalogService';
+import EstimatorCatalogDialog from './EstimatorCatalogDialog';
 
 interface Props {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt, sur
   const [catalog, setCatalog] = useState<CostCatalog | null>(null);
   const [catalogs, setCatalogs] = useState<CostCatalog[]>([]);
   const [template, setTemplate] = useState<'Driveway' | 'Parking Lot' | 'Custom'>('Custom');
+  const [showCatalog, setShowCatalog] = useState(false);
   const [unitCost, setUnitCost] = useState<number>(FALLBACK_UNIT_COST);
   const [wastePct, setWastePct] = useState<number>(5);
   const [taxPct, setTaxPct] = useState<number>(0);
@@ -143,6 +145,7 @@ export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt, sur
                   <option key={c.id} value={c.id}>{c.region} {c.is_default ? '(Default)' : ''}</option>
                 ))}
               </select>
+              <div className="flex justify-end mt-2"><button className="text-xs underline" onClick={() => setShowCatalog(true)}>Manage items</button></div>
             </div>
           </div>
           <div className="text-sm text-muted-foreground">Area (sq ft)</div>
@@ -192,6 +195,7 @@ export const EstimatorPanel: React.FC<Props> = ({ isOpen, onClose, areaSqFt, sur
             <Button variant="secondary" onClick={() => exportEstimate('json')}>Export JSON</Button>
           </div>
         </div>
+        <EstimatorCatalogDialog isOpen={showCatalog} onClose={() => setShowCatalog(false)} catalogId={catalog?.id || null} />
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="secondary" onClick={onClose}>Close</Button>
         </div>

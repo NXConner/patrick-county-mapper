@@ -27,6 +27,8 @@ const ShareDialog = lazyWithPreload(() => import('@/components/Workspace/ShareDi
 const ExportHistoryDialog = lazyWithPreload(() => import('@/components/Export/ExportHistoryDialog'));
 const TilePrefetchDialog = lazyWithPreload(() => import('@/components/Offline/TilePrefetchDialog'));
 const BatchAoiTool = lazyWithPreload(() => import('@/components/Map/BatchAoiTool'));
+const ImportDataDialog = lazyWithPreload(() => import('@/components/Import/ImportDataDialog'));
+const OverlayLegend = lazyWithPreload(() => import('@/components/Map/OverlayLegend'));
 
 const ServiceInfo = lazyWithPreload(() => import('@/components/ServiceInfo/ServiceInfo'));
 
@@ -56,6 +58,7 @@ const Index = () => {
   const [showExportHistory, setShowExportHistory] = useState(false);
   const [showPrefetch, setShowPrefetch] = useState(false);
   const [showBatchAoi, setShowBatchAoi] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const { isViewer } = useWorkspaceRole(workspaceName);
 
   // Map reference for communication with map component
@@ -406,6 +409,7 @@ const Index = () => {
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowExportHistory(true)} title="Export History">Exports</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowPrefetch(true)} title="Offline Prefetch">Prefetch</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowBatchAoi(true)} title="Batch AOI">Batch AOI</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowImport(true)} title="Import Data">Import</Button>
               </div>
               <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground max-w-xs">
                 <div className="flex items-center gap-1">
@@ -465,6 +469,8 @@ const Index = () => {
             readOnly={isViewer}
             snappingEnabled={false}
           />
+          {/* Overlay Legend */}
+          <OverlayLegend zoning={(layerStates as any).zoning} flood={(layerStates as any).flood} soils={(layerStates as any).soils} />
 
           {/* Directions meta overlay */}
           {directionsMeta && (
@@ -608,6 +614,12 @@ const Index = () => {
             if (!m) return null;
             const b = m.getBounds();
             return { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() };
+          }} />
+        )}
+        {showImport && (
+          <ImportDataDialog isOpen={showImport} onClose={() => setShowImport(false)} onGeoJson={(fc) => {
+            mapRef.current?.loadDrawingGeoJSON?.(fc);
+            toast.success('Imported GeoJSON');
           }} />
         )}
       </Suspense>
