@@ -910,6 +910,11 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       link.click();
       URL.revokeObjectURL(url);
       toast.success('Measurements exported as GeoJSON');
+      // Try shapefile export (best-effort)
+      Promise.resolve(import('@/services/ShapefileExport')).then(async (m) => {
+        const res = await m.exportAsShapefile(data as any, 'measurements');
+        if (res.ok) toast.success('Shapefile (zip) exported');
+      }).catch(() => {});
     }
   };
 
