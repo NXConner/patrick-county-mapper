@@ -25,6 +25,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { COUNTY_SOURCES } from '@/data/countySources';
+import { PropertyService } from '@/services/PropertyService';
 
 interface PropertyInfo {
   parcelId?: string;
@@ -33,17 +34,22 @@ interface PropertyInfo {
   acreage?: number;
   taxValue?: number;
   zoning?: string;
+  sales?: Array<{ sale_date: string; sale_price: number; buyer_name?: string | null; seller_name?: string | null; deed_book?: string | null; deed_page?: string | null }>;
+  assessments?: Array<{ assessment_year: number; land_value?: number | null; improvement_value?: number | null; total_value?: number | null; exemptions?: number | null; taxable_value?: number | null }>;
+  utilities?: string[];
 }
 
 interface PropertyPanelProps {
   isOpen: boolean;
   onToggle: () => void;
   propertyInfo?: PropertyInfo;
+  onOpenParcel?: (parcelId: string) => void;
 }
 
-const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propertyInfo }) => {
+const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propertyInfo, onOpenParcel }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'search' | 'details' | 'sources' | 'actions'>('search');
+  const [results, setResults] = useState<Array<{ parcel_id: string; owner_name: string | null; property_address: string | null }>>([]);
 
   type PanelTabId = 'search' | 'details' | 'sources' | 'actions';
   const panelTabs: { id: PanelTabId; label: string; icon: JSX.Element }[] = [
@@ -53,9 +59,10 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
     { id: 'actions', label: 'Actions', icon: <Settings className="w-4 h-4" /> },
   ];
 
-  const handleSearch = () => {
-    // Integrated with real Patrick County property database
-    console.log('Searching for:', searchTerm);
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) return;
+    const r = await PropertyService.search(searchTerm.trim());
+    setResults(r.map(x => ({ parcel_id: x.parcel_id, owner_name: x.owner_name, property_address: x.property_address })));
   };
 
   // Enhanced Panel content component
@@ -136,6 +143,23 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
               </Button>
             </div>
           </div>
+          {results.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Results</h4>
+              <div className="space-y-1">
+                {results.map(r => (
+                  <div key={r.parcel_id} className="flex items-center justify-between p-2 rounded border">
+                    <div className="text-sm">
+                      <div className="font-medium">{r.parcel_id}</div>
+                      <div className="text-muted-foreground">{r.owner_name || '—'}</div>
+                      <div className="text-muted-foreground">{r.property_address || '—'}</div>
+                    </div>
+                    <Button size="sm" onClick={() => onOpenParcel?.(r.parcel_id)}>Open</Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -207,6 +231,42 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
                       <span className="text-sm text-muted-foreground">Zoning:</span>
                     </div>
                     <Badge variant="secondary" className="text-sm">{propertyInfo.zoning}</Badge>
+                  </div>
+                )}
+                {propertyInfo.utilities && propertyInfo.utilities.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/20">
+                    <div className="text-sm font-medium mb-2">Utilities</div>
+                    <div className="flex flex-wrap gap-1">
+                      {propertyInfo.utilities.map((u, i) => (
+                        <Badge key={i} variant="outline" className="text-xs">{u}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {propertyInfo.sales && propertyInfo.sales.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/20">
+                    <div className="text-sm font-medium mb-2">Sales History</div>
+                    <div className="space-y-1">
+                      {propertyInfo.sales.map((s, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span>{new Date(s.sale_date).toLocaleDateString()}</span>
+                          <span className="font-medium">${Math.round(s.sale_price).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {propertyInfo.assessments && propertyInfo.assessments.length > 0 && (
+                  <div className="p-3 rounded-lg bg-muted/20">
+                    <div className="text-sm font-medium mb-2">Assessments</div>
+                    <div className="space-y-1">
+                      {propertyInfo.assessments.map((a, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span>{a.assessment_year}</span>
+                          <span className="font-medium">${Math.round(a.total_value || 0).toLocaleString()}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

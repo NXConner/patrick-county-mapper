@@ -3,11 +3,13 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import MapServiceDropdown from '@/components/Map/MapServiceDropdown';
 import AddressSearchBar from '@/components/Map/AddressSearchBar';
-import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star, Layers, FileText, X } from 'lucide-react';
+import { MapPinIcon, Navigation, Globe, Signal, Wifi, Zap, Shield, Star, Layers, FileText, X, Bookmark, Save, History, Play } from 'lucide-react';
 import { useGpsLocation } from '@/hooks/useGpsLocation';
 import { lazyWithPreload } from '@/lib/lazyWithPreload';
 import type { FreeMapContainerRef } from '@/components/Map/FreeMapContainer';
 import type { FreeMapContainerProps } from '@/components/Map/FreeMapContainer';
+import { getStateFromUrl, setStateInUrl } from '@/lib/urlState';
+import { useWorkspaceRole } from '@/hooks/useWorkspaceRole';
 
 // Lazy load heavy components
 const FreeMapContainer = lazyWithPreload(() => import('@/components/Map/FreeMapContainer'));
@@ -17,6 +19,16 @@ const AsphaltDetector = lazyWithPreload(() => import('@/components/Map/AsphaltDe
 const EnhancedAsphaltDetector = lazyWithPreload(() => import('@/components/Map/EnhancedAsphaltDetector'));
 const OverlayManager = lazyWithPreload(() => import('@/components/Map/OverlayManager'));
 const PrintComposer = lazyWithPreload(() => import('@/components/Map/PrintComposer'));
+const VersionHistoryDialog = lazyWithPreload(() => import('@/components/Workspace/VersionHistoryDialog'));
+const BookmarksDialog = lazyWithPreload(() => import('@/components/Workspace/BookmarksDialog'));
+const EstimatorPanel = lazyWithPreload(() => import('@/components/Estimator/EstimatorPanel'));
+const AiJobsDialog = lazyWithPreload(() => import('@/components/AI/AiJobsDialog'));
+const ShareDialog = lazyWithPreload(() => import('@/components/Workspace/ShareDialog'));
+const ExportHistoryDialog = lazyWithPreload(() => import('@/components/Export/ExportHistoryDialog'));
+const TilePrefetchDialog = lazyWithPreload(() => import('@/components/Offline/TilePrefetchDialog'));
+const BatchAoiTool = lazyWithPreload(() => import('@/components/Map/BatchAoiTool'));
+const ImportDataDialog = lazyWithPreload(() => import('@/components/Import/ImportDataDialog'));
+const OverlayLegend = lazyWithPreload(() => import('@/components/Map/OverlayLegend'));
 
 const ServiceInfo = lazyWithPreload(() => import('@/components/ServiceInfo/ServiceInfo'));
 
@@ -36,6 +48,18 @@ const Index = () => {
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
   const [showPrintComposer, setShowPrintComposer] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showEstimator, setShowEstimator] = useState(false);
+  const [lastAreaSqFt, setLastAreaSqFt] = useState<number | null>(null);
+  const [lastSurfaces, setLastSurfaces] = useState<Array<{ type: string; area: number }> | undefined>(undefined);
+  const [showAiJobs, setShowAiJobs] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [showExportHistory, setShowExportHistory] = useState(false);
+  const [showPrefetch, setShowPrefetch] = useState(false);
+  const [showBatchAoi, setShowBatchAoi] = useState(false);
+  const [showImport, setShowImport] = useState(false);
+  const { isViewer } = useWorkspaceRole(workspaceName);
 
   // Map reference for communication with map component
   const mapRef = useRef<FreeMapContainerRef | null>(null);
@@ -59,8 +83,25 @@ const Index = () => {
   // Hydrate selected map service from localStorage
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('selected-map-service');
-      if (stored) setSelectedMapService(stored);
+      // URL state has priority if present
+      const urlState = getStateFromUrl();
+      if (urlState) {
+        if (urlState.svc) setSelectedMapService(urlState.svc);
+        if (urlState.layers) setLayerStates(prev => ({ ...prev, ...urlState.layers }));
+        // Defer map centering to first render where mapRef is ready
+        const id = window.setTimeout(() => {
+          try {
+            const map = mapRef.current?.getMap?.();
+            if (map) {
+              map.setView([urlState.lat, urlState.lng] as any, urlState.z);
+            }
+          } catch {}
+        }, 0);
+        return () => window.clearTimeout(id);
+      } else {
+        const stored = localStorage.getItem('selected-map-service');
+        if (stored) setSelectedMapService(stored);
+      }
     } catch {
       // localStorage not available or blocked; ignore persistence
     }
@@ -75,8 +116,18 @@ const Index = () => {
     }
   }, [selectedMapService]);
 
+  // Keep URL state in sync when map/layers/service change
+  useEffect(() => {
+    const map = mapRef.current?.getMap?.();
+    if (!map) return;
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    setStateInUrl({ lat: center.lat, lng: center.lng, z: zoom, svc: selectedMapService, layers: layerStates }, true);
+  }, [selectedMapService, layerStates]);
+
   const handleMeasurement = useCallback((measurement: { distance?: number; area?: number }) => {
     setCurrentMeasurement(measurement);
+    if (typeof measurement.area === 'number') setLastAreaSqFt(measurement.area);
   }, []);
 
   const handleLocationSearch = useCallback((lat: number, lng: number, address: string) => {
@@ -116,6 +167,16 @@ const Index = () => {
         ...prev,
         [layerId]: !prev[layerId]
       }));
+      // Update URL immediately after toggle
+      try {
+        const map = mapRef.current?.getMap?.();
+        if (map) {
+          const c = map.getCenter();
+          const z = map.getZoom();
+          const next = { ...layerStates, [layerId]: !layerStates[layerId as keyof typeof layerStates] } as any;
+          setStateInUrl({ lat: c.lat, lng: c.lng, z, svc: selectedMapService, layers: next }, true);
+        }
+      } catch {}
     }
   }, []);
 
@@ -248,6 +309,8 @@ const Index = () => {
                   {gpsLoading ? 'Locating...' : 'Locate Me'}
                 </span>
               </Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => { window.location.href = '/analytics'; }}>Analytics</Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => { window.location.href = '/billing'; }}>Billing</Button>
               <div className="hidden md:flex items-center gap-2">
                 <input
                   className="px-2 py-1 rounded border text-xs bg-background"
@@ -255,8 +318,100 @@ const Index = () => {
                   value={workspaceName}
                   onChange={(e) => setWorkspaceName(e.target.value)}
                 />
-                <Button variant="secondary" size="sm" onClick={saveWorkspace} className="text-xs">Save</Button>
+                <Button variant="secondary" size="sm" onClick={saveWorkspace} className="text-xs" disabled={isViewer}>Save</Button>
                 <Button variant="secondary" size="sm" onClick={loadWorkspace} className="text-xs">Load</Button>
+                <Button variant="outline" size="sm" className="text-xs" disabled={isViewer} onClick={async () => {
+                  try {
+                    const map = mapRef.current?.getMap?.();
+                    if (!map) return;
+                    const c = map.getCenter();
+                    const z = map.getZoom();
+                    const title = prompt('Bookmark title?') || `${c.lat.toFixed(5)}, ${c.lng.toFixed(5)} @ ${z}`;
+                    const { setStateInUrl } = await import('@/lib/urlState');
+                    setStateInUrl({ lat: c.lat, lng: c.lng, z, svc: selectedMapService, layers: layerStates }, true);
+                    const { BookmarksService } = await import('@/services/BookmarksService');
+                    await BookmarksService.add(title, { lat: c.lat, lng: c.lng, z, svc: selectedMapService, layers: layerStates });
+                    toast.success('Bookmarked');
+                  } catch (e) {
+                    toast.error('Failed to add bookmark');
+                  }
+                }} title="Bookmark"><Bookmark className="w-3.5 h-3.5" /></Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowBookmarks(true)} title="Bookmarks">Bookmarks</Button>
+                <Button variant="outline" size="sm" className="text-xs" disabled={isViewer} onClick={async () => {
+                  try {
+                    const map = mapRef.current?.getMap?.();
+                    if (!map) return;
+                    const center = map.getCenter();
+                    const state = {
+                      name: workspaceName,
+                      createdAt: new Date().toISOString(),
+                      map: {
+                        center: [center.lat, center.lng] as [number, number],
+                        zoom: map.getZoom(),
+                        mapService: selectedMapService,
+                        layerStates
+                      },
+                      drawings: mapRef.current?.getDrawingGeoJSON?.() || null
+                    };
+                    const { WorkspaceVersionsService } = await import('@/services/WorkspaceVersionsService');
+                    await WorkspaceVersionsService.createVersion(workspaceName, state as any);
+                    toast.success('Version saved');
+                  } catch {
+                    toast.error('Failed to save version');
+                  }
+                }} title="Save Version"><Save className="w-3.5 h-3.5" /></Button>
+                <Button variant="outline" size="sm" className="text-xs" disabled={isViewer} onClick={async () => {
+                  try {
+                    const { WorkspaceVersionsService } = await import('@/services/WorkspaceVersionsService');
+                    const latest = await WorkspaceVersionsService.getLatestVersion(workspaceName);
+                    if (!latest) { toast.info('No versions yet'); return; }
+                    const ws = latest.payload as any;
+                    setSelectedMapService(ws.map.mapService);
+                    setLayerStates(ws.map.layerStates);
+                    const map = mapRef.current?.getMap?.();
+                    map?.setView(ws.map.center as any, ws.map.zoom);
+                    mapRef.current?.loadDrawingGeoJSON?.(ws.drawings);
+                    toast.success(`Restored version ${latest.version}`);
+                  } catch {
+                    toast.error('Failed to restore version');
+                  }
+                }} title="Restore Latest"><History className="w-3.5 h-3.5" /></Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
+                  try {
+                    const map = mapRef.current?.getMap?.();
+                    if (!map) return;
+                    const b = map.getBounds();
+                    const aoi = { bbox: [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()] };
+                    const params = { surfaces: ['asphalt'], detail: 'standard' };
+                    const { AiJobsService } = await import('@/services/AiJobsService');
+                    const id = await AiJobsService.queue(aoi, params);
+                    toast.success('AI job queued', { description: id });
+                  } catch {
+                    toast.error('Failed to queue AI job');
+                  }
+                }} title="Queue AI Batch"><Play className="w-3.5 h-3.5" /></Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowAiJobs(true)} title="AI Jobs">AI Jobs</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowVersionHistory(true)} title="Version History">History</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowShare(true)} title="Share">Share</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={async () => {
+                  try {
+                    const map = mapRef.current?.getMap?.();
+                    if (!map) return;
+                    const c = map.getCenter();
+                    const z = map.getZoom();
+                    const { setStateInUrl } = await import('@/lib/urlState');
+                    setStateInUrl({ lat: c.lat, lng: c.lng, z, svc: selectedMapService, layers: layerStates }, true);
+                    await navigator.clipboard.writeText(window.location.href);
+                    toast.success('Share link copied');
+                  } catch {
+                    toast.error('Failed to copy link');
+                  }
+                }} title="Copy Share Link">Copy Link</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowEstimator(true)} title="Estimator">Estimate</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowExportHistory(true)} title="Export History">Exports</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowPrefetch(true)} title="Offline Prefetch">Prefetch</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowBatchAoi(true)} title="Batch AOI">Batch AOI</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowImport(true)} title="Import Data">Import</Button>
               </div>
               <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground max-w-xs">
                 <div className="flex items-center gap-1">
@@ -313,7 +468,11 @@ const Index = () => {
             layerStates={layerStates}
             onLayerToggle={handleLayerToggle}
             gpsLocation={gpsLocation}
+            readOnly={isViewer}
+            snappingEnabled={false}
           />
+          {/* Overlay Legend */}
+          <OverlayLegend zoning={(layerStates as any).zoning} flood={(layerStates as any).flood} soils={(layerStates as any).soils} />
 
           {/* Directions meta overlay */}
           {directionsMeta && (
@@ -335,6 +494,12 @@ const Index = () => {
                 toast.success(`Enhanced AI analysis complete: ${results.length} surfaces detected`, {
                   description: "Advanced computer vision analysis with measurements and cost estimates"
                 });
+                try {
+                  const surfaces = (results || []).map((r: any) => ({ type: r.surfaceType, area: r.area }));
+                  setLastSurfaces(surfaces);
+                  const totalArea = surfaces.reduce((sum, s) => sum + (typeof s.area === 'number' ? s.area : 0), 0);
+                  if (totalArea > 0) setLastAreaSqFt(totalArea);
+                } catch {}
               }}
               onClose={() => setShowAsphaltDetector(false)}
             />
@@ -355,6 +520,9 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
+            readOnly={isViewer}
+            snappingEnabled={false}
+            onSnappingChange={() => {}}
           />
           {showPrintComposer && (
             <PrintComposer mapRef={mapRef} onClose={() => setShowPrintComposer(false)} />
@@ -372,9 +540,91 @@ const Index = () => {
               taxValue: 150000,
               zoning: "Residential"
             }}
+            onOpenParcel={async (parcelId) => {
+              const { PropertyService } = await import('@/services/PropertyService');
+              const rec = await PropertyService.getByParcel(parcelId);
+              if (rec) {
+                setSelectedProperty({
+                  parcelId: rec.parcel_id,
+                  owner: rec.owner_name || undefined,
+                  address: rec.property_address || undefined,
+                  acreage: rec.acreage || undefined,
+                  taxValue: rec.tax_value || undefined,
+                  zoning: rec.zoning || undefined,
+                });
+                if (rec.latitude && rec.longitude) {
+                  mapRef.current?.getMap?.()?.setView([rec.latitude as any, rec.longitude as any] as any, 18);
+                }
+                setPropertyPanelOpen(true);
+              }
+            }}
           />
         </Suspense>
       </div>
+      {/* Dialogs */}
+      <Suspense>
+        {showVersionHistory && (
+          <VersionHistoryDialog
+            isOpen={showVersionHistory}
+            onClose={() => setShowVersionHistory(false)}
+            workspaceName={workspaceName}
+            onRestore={(v) => {
+              const ws = v.payload as any;
+              setSelectedMapService(ws.map.mapService);
+              setLayerStates(ws.map.layerStates);
+              const map = mapRef.current?.getMap?.();
+              map?.setView(ws.map.center as any, ws.map.zoom);
+              mapRef.current?.loadDrawingGeoJSON?.(ws.drawings);
+              setShowVersionHistory(false);
+              toast.success(`Restored version ${v.version}`);
+            }}
+          />
+        )}
+        {showBookmarks && (
+          <BookmarksDialog
+            isOpen={showBookmarks}
+            onClose={() => setShowBookmarks(false)}
+            onNavigate={(lat, lng, z) => {
+              const map = mapRef.current?.getMap?.();
+              map?.setView([lat, lng] as any, z);
+            }}
+          />
+        )}
+        {showEstimator && (
+          <EstimatorPanel isOpen={showEstimator} onClose={() => setShowEstimator(false)} areaSqFt={lastAreaSqFt} surfaces={lastSurfaces} />
+        )}
+        {showAiJobs && (
+          <AiJobsDialog isOpen={showAiJobs} onClose={() => setShowAiJobs(false)} />
+        )}
+        {showShare && (
+          <ShareDialog isOpen={showShare} onClose={() => setShowShare(false)} workspaceName={workspaceName} />
+        )}
+        {showExportHistory && (
+          <ExportHistoryDialog isOpen={showExportHistory} onClose={() => setShowExportHistory(false)} />
+        )}
+        {showPrefetch && (
+          <TilePrefetchDialog isOpen={showPrefetch} onClose={() => setShowPrefetch(false)} getViewport={() => {
+            const m = mapRef.current?.getMap?.();
+            if (!m) return null;
+            const b = m.getBounds();
+            return { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth(), zoom: m.getZoom() };
+          }} />
+        )}
+        {showBatchAoi && (
+          <BatchAoiTool isOpen={showBatchAoi} onClose={() => setShowBatchAoi(false)} getViewport={() => {
+            const m = mapRef.current?.getMap?.();
+            if (!m) return null;
+            const b = m.getBounds();
+            return { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() };
+          }} />
+        )}
+        {showImport && (
+          <ImportDataDialog isOpen={showImport} onClose={() => setShowImport(false)} onGeoJson={(fc) => {
+            mapRef.current?.loadDrawingGeoJSON?.(fc);
+            toast.success('Imported GeoJSON');
+          }} />
+        )}
+      </Suspense>
     </div>
   );
 };

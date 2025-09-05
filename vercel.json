@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "api/create-checkout-session.ts": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}
+

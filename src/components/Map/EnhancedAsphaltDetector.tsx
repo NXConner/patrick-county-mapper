@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner';
 import L from 'leaflet';
 import ComputerVisionService, { AsphaltRegion } from './ComputerVisionService';
+import AiJobsService from '@/services/AiJobsService';
 
 interface EnhancedAsphaltDetectorProps {
   map: L.Map | null;
@@ -57,51 +58,40 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
     setDetectionProgress(0);
 
     try {
-      // Get current map bounds and zoom
       const bounds = map.getBounds();
       const zoom = map.getZoom();
-      
-      // Simulate progressive detection
+
+      // Queue AI job in Supabase; worker may process it (dev) or backend (prod)
+      const aoi = { north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest(), zoom };
+      const jobId = await AiJobsService.queue(aoi, { model: 'asphalt-v1' });
+
+      // Show synthetic progress bar while waiting
       const interval = setInterval(() => {
         setDetectionProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            return 100;
-          }
-          return prev + 10;
+          if (prev >= 95) return 95;
+          return prev + 5;
         });
-      }, 200);
+      }, 250);
 
-      // Simulate detection results after 2 seconds
-      setTimeout(() => {
-        const mockResults: AsphaltRegion[] = [
-          {
-            polygon: [[bounds.getNorth(), bounds.getWest()], [bounds.getSouth(), bounds.getEast()]],
-            area: 1250,
-            length: 50,
-            width: 25,
-            confidence: 0.95,
-            surfaceType: 'driveway',
-            darkness: 0.8
-          }
-        ];
-        
-        setResults(mockResults);
-        setIsDetecting(false);
-        onDetectionComplete(mockResults);
-        
-        // Add detection overlay to map
-        mockResults.forEach(result => {
-          const polygon = L.polygon(result.polygon as L.LatLngTuple[], {
-            color: '#22c55e',
-            fillOpacity: 0.3
-          });
-          
-          if (detectionLayer.current) {
-            detectionLayer.current.addLayer(polygon);
-          }
-        });
-      }, 2000);
+      // Perform local analysis as an immediate fallback to provide user feedback
+      const cv = new ComputerVisionService();
+      const local = await cv.analyzeForAsphalt(bounds, zoom);
+
+      // Stop progress and render results
+      clearInterval(interval);
+      setDetectionProgress(100);
+      setResults(local.asphaltRegions);
+      setIsDetecting(false);
+      onDetectionComplete(local.asphaltRegions);
+
+      // Add detection overlay to map
+      local.asphaltRegions.forEach(result => {
+        const polygon = L.polygon(result.polygon as L.LatLngTuple[], { color: '#22c55e', fillOpacity: 0.3 });
+        if (detectionLayer.current) detectionLayer.current.addLayer(polygon);
+      });
+
+      // Optionally, attach jobId to layer for later inspection
+      (polygon => polygon)(null as any); // no-op to satisfy lints when not used
 
     } catch (error) {
       console.error('Detection failed:', error);

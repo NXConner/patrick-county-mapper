@@ -38,6 +38,9 @@ interface MeasurementToolbarProps {
   onLayerToggle?: (layerId: string) => void;
   onAsphaltDetection?: () => void;
   showAsphaltDetector?: boolean;
+  readOnly?: boolean;
+  snappingEnabled?: boolean;
+  onSnappingChange?: (enabled: boolean) => void;
 
 }
 
@@ -49,6 +52,9 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   onLayerToggle,
   onAsphaltDetection,
   showAsphaltDetector,
+  readOnly,
+  snappingEnabled,
+  onSnappingChange,
 
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -100,6 +106,12 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
     }
   ];
 
+  const [snapping, setSnapping] = useState(!!snappingEnabled);
+
+  React.useEffect(() => {
+    setSnapping(!!snappingEnabled);
+  }, [snappingEnabled]);
+
   // Dynamic layer controls based on current state
   const layerControls = [
     {
@@ -141,6 +153,30 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
       active: layerStates?.parcels ?? false,
       description: 'Official county parcel overlays (if available)',
       color: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30'
+    },
+    {
+      id: 'zoning',
+      name: 'Zoning',
+      icon: <Layers className="w-4 h-4" />,
+      active: (layerStates as any)?.zoning ?? false,
+      description: 'Zoning overlay (WMS)',
+      color: 'bg-amber-500/20 text-amber-600 border-amber-500/30'
+    },
+    {
+      id: 'flood',
+      name: 'Flood (FEMA)',
+      icon: <Layers className="w-4 h-4" />,
+      active: (layerStates as any)?.flood ?? false,
+      description: 'FEMA flood maps (WMS)',
+      color: 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30'
+    },
+    {
+      id: 'soils',
+      name: 'Soils',
+      icon: <Layers className="w-4 h-4" />,
+      active: (layerStates as any)?.soils ?? false,
+      description: 'USDA soils (WMS)',
+      color: 'bg-lime-500/20 text-lime-600 border-lime-500/30'
     }
   ];
 
@@ -188,6 +224,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                 variant={activeTool === tool.id ? "default" : "secondary"}
                 size="sm"
                 onClick={() => {
+                  if (readOnly && tool.id !== 'select' && tool.id !== 'print') return;
                   onToolChange(tool.id);
                   setIsMobileMenuOpen(false);
                 }}
@@ -197,6 +234,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                     : 'btn-secondary-enhanced hover:shadow-panel'
                 }`}
                 title={tool.description}
+                disabled={!!readOnly && tool.id !== 'select' && tool.id !== 'print'}
               >
                 <div className={`p-2 rounded-lg ${tool.color} ${activeTool === tool.id ? 'bg-primary/20' : ''}`}>
                   {tool.icon}
@@ -230,6 +268,12 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
               </div>
             </div>
           )}
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Snapping</span>
+            <button className={`px-3 py-1 rounded text-xs ${snapping ? 'bg-primary text-primary-foreground' : 'bg-muted'}`} onClick={() => { const next = !snapping; setSnapping(next); onSnappingChange?.(next); }}>
+              {snapping ? 'On' : 'Off'}
+            </button>
+          </div>
         </div>
       )}
 
@@ -243,6 +287,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                 onClick={() => onLayerToggle?.(layer.id)}
                 className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group"
                 title={layer.description}
+                disabled={!!readOnly}
               >
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${layer.color} ${layer.active ? 'bg-primary/20' : ''}`}>
@@ -269,6 +314,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
         <div className="space-y-4">
           <Button
             onClick={() => {
+              if (readOnly) return;
               onAsphaltDetection?.();
               setIsMobileMenuOpen(false);
             }}
@@ -277,6 +323,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
             className={`w-full justify-start h-12 transition-all duration-200 ${
               showAsphaltDetector ? 'btn-primary-enhanced' : 'btn-secondary-enhanced'
             }`}
+            disabled={!!readOnly}
           >
             <Zap className="w-4 h-4 mr-2" />
             {showAsphaltDetector ? 'Hide AI Detection' : 'Enhanced AI Detection'}

@@ -31,6 +31,7 @@ export class ExportService {
     options: Partial<ExportOptions> = {}
   ): Promise<void> {
     try {
+      const { ExportLogsService } = await import('./ExportLogsService');
       const canvas = await this.createCanvas(data, {
         ...options,
         format: 'png',
@@ -43,9 +44,11 @@ export class ExportService {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      await ExportLogsService.log('png', options as any, 'completed');
       
     } catch (error) {
       console.error('PNG export failed:', error);
+      try { const { ExportLogsService } = await import('./ExportLogsService'); await ExportLogsService.log('png', options as any, 'failed', (error as Error)?.message); } catch {}
       throw new Error('Failed to export PNG');
     }
   }
@@ -56,6 +59,12 @@ export class ExportService {
     options: Partial<ExportOptions> = {}
   ): Promise<void> {
     try {
+      const { ExportLogsService } = await import('./ExportLogsService');
+      // Enqueue export for background retry capability
+      try {
+        const { ExportQueueService } = await import('./ExportQueueService');
+        await ExportQueueService.enqueue('pdf', { options });
+      } catch {}
       const worker = new Worker(new URL('../workers/pdfWorker.ts', import.meta.url), { type: 'module' });
       const result: ArrayBuffer = await new Promise((resolve, reject) => {
         const onMessage = (event: MessageEvent) => {
@@ -83,9 +92,11 @@ export class ExportService {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      await ExportLogsService.log('pdf', options as any, 'completed');
       
     } catch (error) {
       console.error('PDF export failed:', error);
+      try { const { ExportLogsService } = await import('./ExportLogsService'); await ExportLogsService.log('pdf', options as any, 'failed', (error as Error)?.message); } catch {}
       throw new Error('Failed to export PDF');
     }
   }
@@ -126,6 +137,7 @@ export class ExportService {
     options: Partial<ExportOptions> = {}
   ): Promise<void> {
     try {
+      const { ExportLogsService } = await import('./ExportLogsService');
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
         throw new Error('Popup blocked - please allow popups for printing');
@@ -144,9 +156,11 @@ export class ExportService {
           // printWindow.close();
         }, 500);
       };
+      await ExportLogsService.log('print', options as any, 'completed');
       
     } catch (error) {
       console.error('Print failed:', error);
+      try { const { ExportLogsService } = await import('./ExportLogsService'); await ExportLogsService.log('print', options as any, 'failed', (error as Error)?.message); } catch {}
       throw new Error('Failed to print analysis');
     }
   }
@@ -191,6 +205,7 @@ export class ExportService {
     options: Partial<ExportOptions> = {}
   ): Promise<void> {
     try {
+      const { ExportLogsService } = await import('./ExportLogsService');
       const reportWindow = window.open('', '_blank', 'width=900,height=700');
       if (!reportWindow) {
         throw new Error('Popup blocked - please allow popups for reports');
@@ -200,9 +215,11 @@ export class ExportService {
       
       reportWindow.document.write(reportContent);
       reportWindow.document.close();
+      await ExportLogsService.log('report', options as any, 'completed');
       
     } catch (error) {
       console.error('Report generation failed:', error);
+      try { const { ExportLogsService } = await import('./ExportLogsService'); await ExportLogsService.log('report', options as any, 'failed', (error as Error)?.message); } catch {}
       throw new Error('Failed to generate report');
     }
   }

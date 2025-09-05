@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
 import { idbGet, idbSet } from '@/lib/idbCache';
 import { COUNTY_SOURCES } from '@/data/countySources';
+import { OVERLAY_SOURCES } from '@/data/overlaySources';
 import { decodePolyline } from '@/lib/googleMaps';
 
 // Fix for default markers in Leaflet
@@ -53,6 +54,8 @@ export interface FreeMapContainerProps {
   onLayerToggle?: (layerId: string) => void;
   onPropertySelect?: (property: PropertyInfo) => void;
   gpsLocation?: { latitude: number; longitude: number } | null;
+  readOnly?: boolean;
+  snappingEnabled?: boolean;
 }
 
 export interface FreeMapContainerRef {
@@ -68,7 +71,9 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   activeTool,
   mapService = 'esri-satellite',
   onLocationSearch,
-  gpsLocation
+  gpsLocation,
+  readOnly,
+  snappingEnabled
 }, ref) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -86,7 +91,10 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     roads: true,
     labels: true,
     property: false,
-    parcels: false
+    parcels: false,
+    zoning: false,
+    flood: false,
+    soils: false
   });
 
   const [propertyLoading, setPropertyLoading] = useState(false);
@@ -96,6 +104,9 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const labelsLayer = useRef<L.TileLayer | null>(null);
   const propertyLayer = useRef<L.GeoJSON | null>(null);
   const parcelsGroup = useRef<L.LayerGroup | null>(null);
+  const zoningLayer = useRef<L.TileLayer.WMS | null>(null);
+  const floodLayer = useRef<L.TileLayer.WMS | null>(null);
+  const soilsLayer = useRef<L.TileLayer.WMS | null>(null);
   const overpassAbortController = useRef<AbortController | null>(null);
   const clusterGroup = useRef<L.MarkerClusterGroup | null>(null as unknown as L.MarkerClusterGroup);
 
@@ -408,6 +419,51 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           }
         }
         break;
+      case 'zoning': {
+        if (!OVERLAY_SOURCES.zoning) break;
+        if (newStates.zoning) {
+          if (!zoningLayer.current) {
+            zoningLayer.current = L.tileLayer.wms(OVERLAY_SOURCES.zoning.url, {
+              layers: OVERLAY_SOURCES.zoning.layers,
+              format: 'image/png', transparent: true, opacity: 0.6
+            });
+          }
+          zoningLayer.current.addTo(map.current);
+        } else if (zoningLayer.current) {
+          map.current.removeLayer(zoningLayer.current);
+        }
+        break;
+      }
+      case 'flood': {
+        if (!OVERLAY_SOURCES.flood) break;
+        if (newStates.flood) {
+          if (!floodLayer.current) {
+            floodLayer.current = L.tileLayer.wms(OVERLAY_SOURCES.flood.url, {
+              layers: OVERLAY_SOURCES.flood.layers,
+              format: 'image/png', transparent: true, opacity: 0.6
+            });
+          }
+          floodLayer.current.addTo(map.current);
+        } else if (floodLayer.current) {
+          map.current.removeLayer(floodLayer.current);
+        }
+        break;
+      }
+      case 'soils': {
+        if (!OVERLAY_SOURCES.soils) break;
+        if (newStates.soils) {
+          if (!soilsLayer.current) {
+            soilsLayer.current = L.tileLayer.wms(OVERLAY_SOURCES.soils.url, {
+              layers: OVERLAY_SOURCES.soils.layers,
+              format: 'image/png', transparent: true, opacity: 0.6
+            });
+          }
+          soilsLayer.current.addTo(map.current);
+        } else if (soilsLayer.current) {
+          map.current.removeLayer(soilsLayer.current);
+        }
+        break;
+      }
     }
 
     toast.success(`${layerId.charAt(0).toUpperCase() + layerId.slice(1)} layer ${newStates[layerId as keyof LayerStates] ? 'enabled' : 'disabled'}`);
@@ -854,6 +910,11 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
       link.click();
       URL.revokeObjectURL(url);
       toast.success('Measurements exported as GeoJSON');
+      // Try shapefile export (best-effort)
+      Promise.resolve(import('@/services/ShapefileExport')).then(async (m) => {
+        const res = await m.exportAsShapefile(data as any, 'measurements');
+        if (res.ok) toast.success('Shapefile (zip) exported');
+      }).catch(() => {});
     }
   };
 
@@ -892,11 +953,21 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     if (!map.current) return;
 
     const handleMapClick = (e: L.LeafletMouseEvent) => {
+      if (readOnly) return;
+      const snap = (latlng: L.LatLng): L.LatLng => {
+        if (!snappingEnabled || !map.current) return latlng;
+        const z = map.current.getZoom();
+        let step = 1e-4;
+        if (z >= 18) step = 1e-5; else if (z >= 16) step = 5e-5;
+        const s = (v: number) => Math.round(v / step) * step;
+        return L.latLng(s(latlng.lat), s(latlng.lng));
+      };
+      const latlng = snap(e.latlng);
       if (activeTool === 'point') {
-        addMarker(e.latlng);
+        addMarker(latlng);
       } else if (activeTool === 'line') {
         setMeasurementPoints((prev) => {
-          const next = [...prev, e.latlng];
+          const next = [...prev, latlng];
           if (tempLine.current) {
             tempLine.current.setLatLngs(next);
           } else if (map.current) {
@@ -921,7 +992,7 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
         });
       } else if (activeTool === 'polygon') {
         setMeasurementPoints((prev) => {
-          const next = [...prev, e.latlng];
+          const next = [...prev, latlng];
           if (tempPolygon.current) {
             tempPolygon.current.setLatLngs(next);
           } else if (map.current) {

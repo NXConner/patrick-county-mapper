@@ -35,7 +35,6 @@ import {
 } from 'lucide-react';
 import { PropertyInfo } from '@/hooks/usePropertyData';
 import { MeasurementData } from '@/hooks/useExportMeasurements';
-import { getPropertyAnalytics } from '@/lib/propertyService';
 
 interface AnalyticsDashboardProps {
   properties: PropertyInfo[];

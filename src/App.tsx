@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,10 +6,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { OfflineQueueService } from "@/services/OfflineQueueService";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const AnalyticsPage = lazy(() => import("@/pages/Analytics"));
+const Billing = lazy(() => import("@/pages/Billing"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,24 +43,65 @@ if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({ dsn: import.meta.env.VITE_SENTRY_DSN, tracesSampleRate: 0.2 });
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <ErrorBoundary>
-          <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useEffect(() => {
+    const stop = OfflineQueueService.init({
+      ai_job_insert: async (payload) => {
+        const { aoi, params, created_by } = payload as any;
+        // try inserting again when online
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { error } = await supabase.from('ai_jobs').insert({ aoi, params, created_by }).select('id').single();
+        if (error) throw error;
+      },
+      export_log_insert: async (payload) => {
+        const { export_type, options, status, error: err, user_id } = payload as any;
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { error } = await supabase.from('export_logs').insert({ export_type, options, status, error: err, user_id }).select('id').single();
+        if (error) throw error;
+      },
+      workspace_upsert: async (payload) => {
+        const { name, payload: wsPayload, updated_at } = payload as any;
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { error } = await supabase.from('workspaces').upsert({ name, payload: wsPayload, updated_at }).select('name').single();
+        if (error) throw error;
+      }
+    });
+    return stop;
+  }, []);
+
+  useEffect(() => {
+    const { startAiWorker } = require('@/services/AiWorkerClient');
+    const stop = startAiWorker();
+    return stop;
+  }, []);
+
+  useEffect(() => {
+    const { startExportWorker } = require('@/services/ExportWorkerClient');
+    const stop = startExportWorker();
+    return stop;
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ErrorBoundary>
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/analytics" element={<AnalyticsPage />} />
+                <Route path="/billing" element={<Billing />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </ErrorBoundary>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
