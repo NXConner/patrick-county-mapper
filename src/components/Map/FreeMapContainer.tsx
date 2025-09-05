@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { toast } from 'sonner';
 import { idbGet, idbSet } from '@/lib/idbCache';
 import { COUNTY_SOURCES } from '@/data/countySources';
+import { OVERLAY_SOURCES } from '@/data/overlaySources';
 import { decodePolyline } from '@/lib/googleMaps';
 
 // Fix for default markers in Leaflet
@@ -88,7 +89,10 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     roads: true,
     labels: true,
     property: false,
-    parcels: false
+    parcels: false,
+    zoning: false,
+    flood: false,
+    soils: false
   });
 
   const [propertyLoading, setPropertyLoading] = useState(false);
@@ -98,6 +102,9 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const labelsLayer = useRef<L.TileLayer | null>(null);
   const propertyLayer = useRef<L.GeoJSON | null>(null);
   const parcelsGroup = useRef<L.LayerGroup | null>(null);
+  const zoningLayer = useRef<L.TileLayer.WMS | null>(null);
+  const floodLayer = useRef<L.TileLayer.WMS | null>(null);
+  const soilsLayer = useRef<L.TileLayer.WMS | null>(null);
   const overpassAbortController = useRef<AbortController | null>(null);
   const clusterGroup = useRef<L.MarkerClusterGroup | null>(null as unknown as L.MarkerClusterGroup);
 
@@ -410,6 +417,51 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
           }
         }
         break;
+      case 'zoning': {
+        if (!OVERLAY_SOURCES.zoning) break;
+        if (newStates.zoning) {
+          if (!zoningLayer.current) {
+            zoningLayer.current = L.tileLayer.wms(OVERLAY_SOURCES.zoning.url, {
+              layers: OVERLAY_SOURCES.zoning.layers,
+              format: 'image/png', transparent: true, opacity: 0.6
+            });
+          }
+          zoningLayer.current.addTo(map.current);
+        } else if (zoningLayer.current) {
+          map.current.removeLayer(zoningLayer.current);
+        }
+        break;
+      }
+      case 'flood': {
+        if (!OVERLAY_SOURCES.flood) break;
+        if (newStates.flood) {
+          if (!floodLayer.current) {
+            floodLayer.current = L.tileLayer.wms(OVERLAY_SOURCES.flood.url, {
+              layers: OVERLAY_SOURCES.flood.layers,
+              format: 'image/png', transparent: true, opacity: 0.6
+            });
+          }
+          floodLayer.current.addTo(map.current);
+        } else if (floodLayer.current) {
+          map.current.removeLayer(floodLayer.current);
+        }
+        break;
+      }
+      case 'soils': {
+        if (!OVERLAY_SOURCES.soils) break;
+        if (newStates.soils) {
+          if (!soilsLayer.current) {
+            soilsLayer.current = L.tileLayer.wms(OVERLAY_SOURCES.soils.url, {
+              layers: OVERLAY_SOURCES.soils.layers,
+              format: 'image/png', transparent: true, opacity: 0.6
+            });
+          }
+          soilsLayer.current.addTo(map.current);
+        } else if (soilsLayer.current) {
+          map.current.removeLayer(soilsLayer.current);
+        }
+        break;
+      }
     }
 
     toast.success(`${layerId.charAt(0).toUpperCase() + layerId.slice(1)} layer ${newStates[layerId as keyof LayerStates] ? 'enabled' : 'disabled'}`);

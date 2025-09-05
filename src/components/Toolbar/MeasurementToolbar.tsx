@@ -153,6 +153,30 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
       active: layerStates?.parcels ?? false,
       description: 'Official county parcel overlays (if available)',
       color: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30'
+    },
+    {
+      id: 'zoning',
+      name: 'Zoning',
+      icon: <Layers className="w-4 h-4" />,
+      active: (layerStates as any)?.zoning ?? false,
+      description: 'Zoning overlay (WMS)',
+      color: 'bg-amber-500/20 text-amber-600 border-amber-500/30'
+    },
+    {
+      id: 'flood',
+      name: 'Flood (FEMA)',
+      icon: <Layers className="w-4 h-4" />,
+      active: (layerStates as any)?.flood ?? false,
+      description: 'FEMA flood maps (WMS)',
+      color: 'bg-cyan-500/20 text-cyan-600 border-cyan-500/30'
+    },
+    {
+      id: 'soils',
+      name: 'Soils',
+      icon: <Layers className="w-4 h-4" />,
+      active: (layerStates as any)?.soils ?? false,
+      description: 'USDA soils (WMS)',
+      color: 'bg-lime-500/20 text-lime-600 border-lime-500/30'
     }
   ];
 
