@@ -504,6 +504,7 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
+            readOnly={isViewer}
           />
           {showPrintComposer && (
             <PrintComposer mapRef={mapRef} onClose={() => setShowPrintComposer(false)} />

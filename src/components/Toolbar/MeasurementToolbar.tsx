@@ -38,6 +38,7 @@ interface MeasurementToolbarProps {
   onLayerToggle?: (layerId: string) => void;
   onAsphaltDetection?: () => void;
   showAsphaltDetector?: boolean;
+  readOnly?: boolean;
 
 }
 
@@ -49,6 +50,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   onLayerToggle,
   onAsphaltDetection,
   showAsphaltDetector,
+  readOnly,
 
 }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -188,6 +190,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                 variant={activeTool === tool.id ? "default" : "secondary"}
                 size="sm"
                 onClick={() => {
+                  if (readOnly && tool.id !== 'select' && tool.id !== 'print') return;
                   onToolChange(tool.id);
                   setIsMobileMenuOpen(false);
                 }}
@@ -197,6 +200,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                     : 'btn-secondary-enhanced hover:shadow-panel'
                 }`}
                 title={tool.description}
+                disabled={!!readOnly && tool.id !== 'select' && tool.id !== 'print'}
               >
                 <div className={`p-2 rounded-lg ${tool.color} ${activeTool === tool.id ? 'bg-primary/20' : ''}`}>
                   {tool.icon}
@@ -243,6 +247,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                 onClick={() => onLayerToggle?.(layer.id)}
                 className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-all duration-200 group"
                 title={layer.description}
+                disabled={!!readOnly}
               >
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-lg ${layer.color} ${layer.active ? 'bg-primary/20' : ''}`}>
@@ -269,6 +274,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
         <div className="space-y-4">
           <Button
             onClick={() => {
+              if (readOnly) return;
               onAsphaltDetection?.();
               setIsMobileMenuOpen(false);
             }}
@@ -277,6 +283,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
             className={`w-full justify-start h-12 transition-all duration-200 ${
               showAsphaltDetector ? 'btn-primary-enhanced' : 'btn-secondary-enhanced'
             }`}
+            disabled={!!readOnly}
           >
             <Zap className="w-4 h-4 mr-2" />
             {showAsphaltDetector ? 'Hide AI Detection' : 'Enhanced AI Detection'}
