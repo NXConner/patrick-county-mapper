@@ -477,6 +477,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
     getMap: () => map.current,
     centerOnGpsLocation,
 
+  }));
+
   // Patrick County, VA coordinates
   const patrickCountyCenter: [number, number] = [36.6837, -80.2876];
 
