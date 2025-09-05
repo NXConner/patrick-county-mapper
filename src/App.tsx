@@ -73,6 +73,12 @@ const App = () => {
     return stop;
   }, []);
 
+  useEffect(() => {
+    const { startExportWorker } = require('@/services/ExportWorkerClient');
+    const stop = startExportWorker();
+    return stop;
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

@@ -60,6 +60,11 @@ export class ExportService {
   ): Promise<void> {
     try {
       const { ExportLogsService } = await import('./ExportLogsService');
+      // Enqueue export for background retry capability
+      try {
+        const { ExportQueueService } = await import('./ExportQueueService');
+        await ExportQueueService.enqueue('pdf', { options });
+      } catch {}
       const worker = new Worker(new URL('../workers/pdfWorker.ts', import.meta.url), { type: 'module' });
       const result: ArrayBuffer = await new Promise((resolve, reject) => {
         const onMessage = (event: MessageEvent) => {
