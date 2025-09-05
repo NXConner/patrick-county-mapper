@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,29 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'search' | 'details' | 'sources' | 'actions'>('search');
   const [results, setResults] = useState<Array<{ parcel_id: string; owner_name: string | null; property_address: string | null }>>([]);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // Close desktop panel when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      const node = panelRef.current;
+      if (node && !node.contains(e.target as Node)) {
+        onToggle();
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onToggle();
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onToggle]);
 
   type PanelTabId = 'search' | 'details' | 'sources' | 'actions';
   const panelTabs: { id: PanelTabId; label: string; icon: JSX.Element }[] = [
@@ -442,7 +465,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ isOpen, onToggle, propert
             <TriggerButton />
           </div>
         ) : (
-          <Card className="absolute top-4 right-4 w-80 lg:w-96 card-enhanced z-50">
+          <Card ref={panelRef} className="absolute top-4 right-4 w-80 lg:w-96 card-enhanced z-50">
             <div className="p-4">
               <PanelContent />
             </div>

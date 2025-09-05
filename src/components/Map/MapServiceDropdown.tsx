@@ -55,7 +55,7 @@ const MapServiceDropdown: React.FC<MapServiceDropdownProps> = ({
         Mapping Service
       </label>
       <Select value={selectedService} onValueChange={onServiceChange} onOpenChange={setIsOpen}>
-        <SelectTrigger className="select-enhanced w-full h-11 text-base touch-manipulation">
+        <SelectTrigger className="select-enhanced w-full h-11 text-base touch-manipulation" data-testid="map-service-dropdown">
           <SelectValue placeholder="Select mapping service">
             {selectedServiceData && (
               <div className="flex items-center gap-3">
