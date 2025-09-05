@@ -67,6 +67,12 @@ const App = () => {
     return stop;
   }, []);
 
+  useEffect(() => {
+    const { startAiWorker } = require('@/services/AiWorkerClient');
+    const stop = startAiWorker();
+    return stop;
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
