@@ -242,9 +242,9 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="h-screen w-full flex flex-col bg-gis-satellite safe-area-inset-top safe-area-inset-left safe-area-inset-right">
+    <div className="min-h-dvh h-[100dvh] w-full flex flex-col bg-gis-satellite safe-area-inset-top safe-area-inset-left safe-area-inset-right">
       {/* Enhanced Header */}
-      <div className="toolbar-enhanced z-50 flex-shrink-0">
+      <div className="toolbar-enhanced sticky top-0 z-50 flex-shrink-0 safe-area-inset-top">
         <div className="px-3 sm:px-4 lg:px-6 py-2 sm:py-3">
           {/* Top row - Enhanced with better visual hierarchy */}
           <div className="flex items-center justify-between mb-3 sm:mb-4">
@@ -283,11 +283,11 @@ const Index = () => {
           </div>
 
           {/* Bottom row - Enhanced Search and Controls */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 lg:gap-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 lg:gap-6 controls-row no-scrollbar">
             <div className="flex-1 max-w-full sm:max-w-md">
               <AddressSearchBar onLocationSelect={handleLocationSearch} onGetDirections={handleGetDirections} />
             </div>
-            <div className="flex items-center gap-3 justify-between sm:justify-end">
+            <div className="flex items-center gap-3 justify-between sm:justify-end min-w-0">
               <MapServiceDropdown
                 selectedService={selectedMapService}
                 onServiceChange={setSelectedMapService}

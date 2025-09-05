@@ -277,6 +277,8 @@ Enhanced with striking visual appeal and modern UX patterns.
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    height: 100dvh; /* prefer dynamic viewport height on mobile */
+    min-height: 100dvh;
   }
 
   /* Responsive typography scale */
@@ -360,6 +362,10 @@ Enhanced with striking visual appeal and modern UX patterns.
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
     }
+    /* Avoid toolbar crowding */
+    .toolbar-enhanced .xs\:hide-on-mobile {
+      display: none;
+    }
   }
 
   /* High DPI display optimizations */
@@ -421,6 +427,17 @@ Enhanced with striking visual appeal and modern UX patterns.
   .toolbar-enhanced {
     @apply bg-gis-toolbar/95 backdrop-blur-md border-b border-border/20;
     @apply shadow-toolbar;
+  }
+  /* Allow horizontal scroll on small screens without showing scrollbar */
+  .toolbar-enhanced .controls-row {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 
   /* Enhanced Menu Styles */
