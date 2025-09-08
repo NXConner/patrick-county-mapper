@@ -49,6 +49,18 @@ const Index = () => {
   const [workspaceName, setWorkspaceName] = useState('default');
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
+  const [autoAsphaltScan, setAutoAsphaltScan] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem('asphalt-auto-scan');
+      return v === '1';
+    } catch { return false; }
+  });
+  const [showAsphaltLabels, setShowAsphaltLabels] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem('asphalt-show-labels');
+      return v !== '0';
+    } catch { return true; }
+  });
   const [showPrintComposer, setShowPrintComposer] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
@@ -118,6 +130,14 @@ const Index = () => {
       // localStorage not available or blocked; ignore persistence
     }
   }, [selectedMapService]);
+
+  // Persist asphalt auto detection UI
+  useEffect(() => {
+    try { localStorage.setItem('asphalt-auto-scan', autoAsphaltScan ? '1' : '0'); } catch {}
+  }, [autoAsphaltScan]);
+  useEffect(() => {
+    try { localStorage.setItem('asphalt-show-labels', showAsphaltLabels ? '1' : '0'); } catch {}
+  }, [showAsphaltLabels]);
 
   // Keep URL state in sync when map/layers/service change
   useEffect(() => {
@@ -519,6 +539,10 @@ const Index = () => {
                   if (totalArea > 0) setLastAreaSqFt(totalArea);
                 } catch {}
               }}
+              autoScan={autoAsphaltScan}
+              onAutoScanChange={setAutoAsphaltScan}
+              showLabels={showAsphaltLabels}
+              onShowLabelsChange={setShowAsphaltLabels}
               onClose={() => setShowAsphaltDetector(false)}
             />
           )}
@@ -538,6 +562,10 @@ const Index = () => {
             onLayerToggle={handleLayerToggle}
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
+            autoAsphaltScan={autoAsphaltScan}
+            onAutoAsphaltScanChange={setAutoAsphaltScan}
+            showAsphaltLabels={showAsphaltLabels}
+            onShowAsphaltLabelsChange={setShowAsphaltLabels}
             readOnly={isViewer}
             snappingEnabled={false}
             onSnappingChange={() => {}}

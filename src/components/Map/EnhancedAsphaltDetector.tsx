@@ -23,12 +23,21 @@ interface EnhancedAsphaltDetectorProps {
   map: L.Map | null;
   onDetectionComplete: (results: AsphaltRegion[]) => void;
   onClose: () => void;
+  // Optional controlled UI props
+  autoScan?: boolean;
+  onAutoScanChange?: (enabled: boolean) => void;
+  showLabels?: boolean;
+  onShowLabelsChange?: (enabled: boolean) => void;
 }
 
 const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({ 
   map, 
   onDetectionComplete,
-  onClose 
+  onClose,
+  autoScan: controlledAutoScan,
+  onAutoScanChange,
+  showLabels: controlledShowLabels,
+  onShowLabelsChange
 }) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionProgress, setDetectionProgress] = useState(0);
@@ -36,8 +45,8 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const detectionLayer = useRef<L.LayerGroup | null>(null);
   const labelsLayer = useRef<L.LayerGroup | null>(null);
-  const [autoScan, setAutoScan] = useState<boolean>(false);
-  const [showLabels, setShowLabels] = useState<boolean>(true);
+  const [autoScan, setAutoScan] = useState<boolean>(controlledAutoScan ?? false);
+  const [showLabels, setShowLabels] = useState<boolean>(controlledShowLabels ?? true);
   const debounceId = useRef<number | null>(null);
 
   useEffect(() => {
@@ -58,23 +67,38 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
     };
   }, [map]);
 
-  // Persist and hydrate UI toggles
+  // Persist and hydrate UI toggles (only when uncontrolled)
   useEffect(() => {
-    try {
-      const a = localStorage.getItem('asphalt-auto-scan');
-      const l = localStorage.getItem('asphalt-show-labels');
-      if (a !== null) setAutoScan(a === '1');
-      if (l !== null) setShowLabels(l === '1');
-    } catch {}
+    if (controlledAutoScan === undefined && controlledShowLabels === undefined) {
+      try {
+        const a = localStorage.getItem('asphalt-auto-scan');
+        const l = localStorage.getItem('asphalt-show-labels');
+        if (a !== null) setAutoScan(a === '1');
+        if (l !== null) setShowLabels(l === '1');
+      } catch {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    try { localStorage.setItem('asphalt-auto-scan', autoScan ? '1' : '0'); } catch {}
-  }, [autoScan]);
+    if (controlledAutoScan === undefined) {
+      try { localStorage.setItem('asphalt-auto-scan', autoScan ? '1' : '0'); } catch {}
+    }
+  }, [autoScan, controlledAutoScan]);
 
   useEffect(() => {
-    try { localStorage.setItem('asphalt-show-labels', showLabels ? '1' : '0'); } catch {}
-  }, [showLabels]);
+    if (controlledShowLabels === undefined) {
+      try { localStorage.setItem('asphalt-show-labels', showLabels ? '1' : '0'); } catch {}
+    }
+  }, [showLabels, controlledShowLabels]);
+
+  // Keep internal state in sync with controlled props if provided
+  useEffect(() => {
+    if (controlledAutoScan !== undefined) setAutoScan(controlledAutoScan);
+  }, [controlledAutoScan]);
+  useEffect(() => {
+    if (controlledShowLabels !== undefined) setShowLabels(controlledShowLabels);
+  }, [controlledShowLabels]);
 
   // Debounced re-run of detection when map view changes and autoScan is enabled
   useEffect(() => {
@@ -279,7 +303,14 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
           <Button
             variant={autoScan ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setAutoScan(v => !v)}
+            onClick={() => {
+              const next = !autoScan;
+              if (onAutoScanChange) {
+                onAutoScanChange(next);
+              } else {
+                setAutoScan(next);
+              }
+            }}
           >
             {autoScan ? 'Auto-scan: On' : 'Auto-scan: Off'}
           </Button>
@@ -287,22 +318,24 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
             variant={showLabels ? 'default' : 'outline'}
             size="sm"
             onClick={() => {
-              setShowLabels(v => {
-                const next = !v;
-                // Re-render labels without re-running detection
-                if (labelsLayer.current) labelsLayer.current.clearLayers();
-                if (next && results.length && map && detectionLayer.current && labelsLayer.current) {
-                  results.forEach(result => {
-                    const color = getAsphaltColor(result.surfaceType);
-                    const polygon = L.polygon(result.polygon as L.LatLngTuple[], { color });
-                    const center = polygon.getBounds().getCenter();
-                    const labelHtml = `<div class=\"px-2 py-1 rounded text-[11px] font-semibold bg-white/90 border border-gray-300 shadow-sm whitespace-nowrap\">${result.surfaceType.replace('_', ' ')} · ${Math.round(result.area).toLocaleString()} sq ft</div>`;
-                    const label = L.marker(center, { icon: L.divIcon({ html: labelHtml, className: 'asphalt-area-label', iconSize: [0, 0], iconAnchor: [0, 0] }) });
-                    labelsLayer.current!.addLayer(label);
-                  });
-                }
-                return next;
-              });
+              const next = !showLabels;
+              // Re-render labels without re-running detection
+              if (labelsLayer.current) labelsLayer.current.clearLayers();
+              if (next && results.length && map && detectionLayer.current && labelsLayer.current) {
+                results.forEach(result => {
+                  const color = getAsphaltColor(result.surfaceType);
+                  const polygon = L.polygon(result.polygon as L.LatLngTuple[], { color });
+                  const center = polygon.getBounds().getCenter();
+                  const labelHtml = `<div class=\"px-2 py-1 rounded text-[11px] font-semibold bg-white/90 border border-gray-300 shadow-sm whitespace-nowrap\">${result.surfaceType.replace('_', ' ')} · ${Math.round(result.area).toLocaleString()} sq ft</div>`;
+                  const label = L.marker(center, { icon: L.divIcon({ html: labelHtml, className: 'asphalt-area-label', iconSize: [0, 0], iconAnchor: [0, 0] }) });
+                  labelsLayer.current!.addLayer(label);
+                });
+              }
+              if (onShowLabelsChange) {
+                onShowLabelsChange(next);
+              } else {
+                setShowLabels(next);
+              }
             }}
           >
             {showLabels ? 'Labels: On' : 'Labels: Off'}
