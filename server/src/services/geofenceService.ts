@@ -19,13 +19,21 @@ export async function evaluateGeofencesForEmployee(
     const prev = statusByGeofenceId.get(gf.id);
     if (!prev) {
       await prisma.geofenceStatus.create({ data: { employeeId, geofenceId: gf.id, isInside: inside, lastChangedAt: at } });
-      if (inside) entered.push(gf.id);
+      if (inside) {
+        entered.push(gf.id);
+        await prisma.geofenceEvent.create({ data: { employeeId, geofenceId: gf.id, type: "entered", at, lat, lng } });
+      }
       continue;
     }
     if (prev.isInside !== inside) {
       await prisma.geofenceStatus.update({ where: { id: prev.id }, data: { isInside: inside, lastChangedAt: at } });
-      if (inside) entered.push(gf.id);
-      else exited.push(gf.id);
+      if (inside) {
+        entered.push(gf.id);
+        await prisma.geofenceEvent.create({ data: { employeeId, geofenceId: gf.id, type: "entered", at, lat, lng } });
+      } else {
+        exited.push(gf.id);
+        await prisma.geofenceEvent.create({ data: { employeeId, geofenceId: gf.id, type: "exited", at, lat, lng } });
+      }
     }
   }
 

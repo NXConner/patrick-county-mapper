@@ -27,6 +27,7 @@ model Employee {
   trips            Trip[]
   phoneUsages      PhoneUsage[]
   geofenceStatuses GeofenceStatus[]
+  geofenceEvents   GeofenceEvent[]
 }
 
 model Device {
@@ -74,6 +75,7 @@ model Geofence {
   isActive     Boolean   @default(true)
 
   statuses     GeofenceStatus[]
+  events       GeofenceEvent[]
 }
 
 model GeofenceStatus {
@@ -88,6 +90,33 @@ model GeofenceStatus {
   lastChangedAt DateTime @default(now())
 
   @@unique([employeeId, geofenceId])
+}
+
+model GeofenceEvent {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  geofenceId  String
+  geofence    Geofence @relation(fields: [geofenceId], references: [id])
+  type        String   // entered | exited
+  at          DateTime
+  lat         Float?
+  lng         Float?
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  userId      String?
+  action      String
+  method      String
+  path        String
+  ip          String?
+  userAgent   String?
+  entityType  String?
+  entityId    String?
+  metadata    Json?
 }
 
 model LocationSample {

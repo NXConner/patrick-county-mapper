@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Dashboard</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 20px; }
+      header { display: flex; gap: 12px; align-items: center; }
+      table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+      th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+      th { background: #f3f4f6; }
+      input, button { padding: 8px; }
+      .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h2>Admin Dashboard</h2>
+    </header>
+    <div class="row">
+      <input id="token" placeholder="Bearer token" style="width:420px"/>
+      <button onclick="loadEmployees()">Load Employees</button>
+      <button onclick="loadTripStats()">Trip Stats</button>
+      <button onclick="loadGeofenceTime()">Geofence Time</button>
+    </div>
+    <div id="out"></div>
+    <script>
+      const base = location.origin;
+      function auth() { return { Authorization: 'Bearer ' + document.getElementById('token').value.trim() } }
+      async function loadEmployees(){
+        const r = await fetch(base + '/admin/employees', { headers: auth() });
+        const j = await r.json();
+        document.getElementById('out').innerHTML = `<h3>Employees</h3>` + table(['id','email','fullName','role','isActive','createdAt'], j.employees || []);
+      }
+      async function loadTripStats(){
+        const r = await fetch(base + '/admin/analytics/trip-stats', { headers: auth() });
+        const j = await r.json();
+        document.getElementById('out').innerHTML = `<h3>Trip Stats</h3><pre>${JSON.stringify(j,null,2)}</pre>`;
+      }
+      async function loadGeofenceTime(){
+        const r = await fetch(base + '/admin/analytics/geofence-time', { headers: auth() });
+        const j = await r.json();
+        document.getElementById('out').innerHTML = `<h3>Geofence Time</h3><pre>${JSON.stringify(j,null,2)}</pre>`;
+      }
+      function table(cols, rows){
+        return `<table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>`+
+          rows.map(r=>`<tr>${cols.map(c=>`<td>${(r[c]??'')}</td>`).join('')}</tr>`).join('')+
+        `</tbody></table>`
+      }
+    </script>
+  </body>
+</html>
+
