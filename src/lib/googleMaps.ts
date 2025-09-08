@@ -3,7 +3,7 @@ import { Loader } from '@googlemaps/js-api-loader';
 export type LatLng = { lat: number; lng: number };
 
 let mapsLoader: Loader | null = null;
-let mapsPromise: Promise<typeof google> | null = null;
+let mapsPromise: Promise<any> | null = null;
 
 export function initGoogleMapsLoader(apiKey: string) {
   if (!mapsLoader) {
@@ -15,7 +15,7 @@ export function initGoogleMapsLoader(apiKey: string) {
   }
 }
 
-export async function loadGoogle(): Promise<typeof google> {
+export async function loadGoogle(): Promise<any> {
   if (!mapsLoader) {
     const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
     if (!key) throw new Error('Missing VITE_GOOGLE_MAPS_API_KEY');
