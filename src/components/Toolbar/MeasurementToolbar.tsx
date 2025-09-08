@@ -47,6 +47,11 @@ interface MeasurementToolbarProps {
   onSnappingChange?: (enabled: boolean) => void;
   sidebarOpen?: boolean;
   onSidebarOpenChange?: (open: boolean) => void;
+  // Mobile controls (optional, allow external control of sheet and section)
+  mobileOpen?: boolean;
+  onMobileOpenChange?: (open: boolean) => void;
+  section?: 'tools' | 'layers' | 'ai' | 'info';
+  onSectionChange?: (section: 'tools' | 'layers' | 'ai' | 'info') => void;
 }
 
 const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
@@ -66,9 +71,24 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   onSnappingChange,
   sidebarOpen,
   onSidebarOpenChange,
+  mobileOpen,
+  onMobileOpenChange,
+  section,
+  onSectionChange,
 }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<'tools' | 'layers' | 'ai' | 'info'>('tools');
+  const [internalMobileOpen, setInternalMobileOpen] = useState(false);
+  const isMobileMenuOpen = typeof mobileOpen === 'boolean' ? mobileOpen : internalMobileOpen;
+  const setMobileOpen = (open: boolean) => {
+    if (onMobileOpenChange) onMobileOpenChange(open);
+    else setInternalMobileOpen(open);
+  };
+
+  const [internalSection, setInternalSection] = useState<'tools' | 'layers' | 'ai' | 'info'>('tools');
+  const activeSection = section ?? internalSection;
+  const setActiveSection = (value: 'tools' | 'layers' | 'ai' | 'info') => {
+    if (onSectionChange) onSectionChange(value);
+    else setInternalSection(value);
+  };
   const isSidebarOpen = !!sidebarOpen;
 
   type TabId = 'tools' | 'layers' | 'ai' | 'info';
