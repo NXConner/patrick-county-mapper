@@ -1,0 +1,172 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id               String    @id @default(cuid())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  email            String    @unique
+  fullName         String
+  passwordHash     String
+  isActive         Boolean   @default(true)
+  role             String    @default("employee")
+
+  devices          Device[]
+  shifts           Shift[]
+  locations        LocationSample[]
+  trips            Trip[]
+  phoneUsages      PhoneUsage[]
+  geofenceStatuses GeofenceStatus[]
+  geofenceEvents   GeofenceEvent[]
+}
+
+model Device {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  platform    String
+  osVersion   String?
+  model       String?
+  appVersion  String?
+  pushToken   String?
+  lastSeenAt  DateTime?
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id])
+
+  locationSamples LocationSample[]
+  phoneUsages     PhoneUsage[]
+}
+
+model Shift {
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  clockInAt    DateTime
+  clockOutAt   DateTime?
+  clockInLoc   Json?
+  clockOutLoc  Json?
+  status       String    @default("open") // open | closed | auto_closed
+}
+
+model Geofence {
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  name         String
+  description  String?
+  // types: circle or polygon; circle -> center + radiusMeters; polygon -> coordinates
+  type         String
+  centerLat    Float?
+  centerLng    Float?
+  radiusMeters Float?
+  polygon      Json?
+  isActive     Boolean   @default(true)
+
+  statuses     GeofenceStatus[]
+  events       GeofenceEvent[]
+}
+
+model GeofenceStatus {
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  employeeId   String
+  employee     Employee  @relation(fields: [employeeId], references: [id])
+  geofenceId   String
+  geofence     Geofence  @relation(fields: [geofenceId], references: [id])
+  isInside     Boolean   @default(false)
+  lastChangedAt DateTime @default(now())
+
+  @@unique([employeeId, geofenceId])
+}
+
+model GeofenceEvent {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  geofenceId  String
+  geofence    Geofence @relation(fields: [geofenceId], references: [id])
+  type        String   // entered | exited
+  at          DateTime
+  lat         Float?
+  lng         Float?
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  userId      String?
+  action      String
+  method      String
+  path        String
+  ip          String?
+  userAgent   String?
+  entityType  String?
+  entityId    String?
+  metadata    Json?
+}
+
+model LocationSample {
+  id             String    @id @default(cuid())
+  createdAt      DateTime  @default(now())
+  timestamp      DateTime
+  employeeId     String
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+  deviceId       String?
+  device         Device?   @relation(fields: [deviceId], references: [id])
+  lat            Float
+  lng            Float
+  accuracyMeters Float?
+  altitudeMeters Float?
+  speedMps       Float? // meters per second
+  headingDeg     Float?
+  isMoving       Boolean?
+  source         String? // gps | fused | wifi | cell
+}
+
+model Trip {
+  id                 String    @id @default(cuid())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  employeeId         String
+  employee           Employee  @relation(fields: [employeeId], references: [id])
+  startAt            DateTime
+  endAt              DateTime?
+  startLat           Float
+  startLng           Float
+  endLat             Float?
+  endLng             Float?
+  distanceMeters     Int       @default(0)
+  durationSeconds    Int       @default(0)
+  avgSpeedMps        Float?
+  maxSpeedMps        Float?
+  isDriver           Boolean? // driver vs passenger
+  fuelUsedLiters     Float?
+}
+
+model PhoneUsage {
+  id             String    @id @default(cuid())
+  createdAt      DateTime  @default(now())
+  timestamp      DateTime
+  employeeId     String
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+  deviceId       String?
+  device         Device?   @relation(fields: [deviceId], references: [id])
+  event          String // call_start, call_end, screen_on, screen_off, app_open, app_close
+  appPackage     String?
+  durationSec    Int?
+  metadata       Json?
+}
