@@ -116,7 +116,8 @@ const FreeMapContainer = forwardRef<FreeMapContainerRef, FreeMapContainerProps>(
   const floodLayer = useRef<L.TileLayer.WMS | null>(null);
   const soilsLayer = useRef<L.TileLayer.WMS | null>(null);
   const overpassAbortController = useRef<AbortController | null>(null);
-  const clusterGroup = useRef<L.MarkerClusterGroup | null>(null as unknown as L.MarkerClusterGroup);
+  // Lazily create marker cluster group on first marker add
+  const clusterGroup = useRef<L.MarkerClusterGroup | null>(null);
 
   // Measurement state
   const [measurementPoints, setMeasurementPoints] = useState<L.LatLng[]>([]);
