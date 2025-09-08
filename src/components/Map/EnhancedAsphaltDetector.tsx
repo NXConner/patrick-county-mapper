@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -35,20 +35,80 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
   const [results, setResults] = useState<AsphaltRegion[]>([]);
   const [isMinimized, setIsMinimized] = useState(false);
   const detectionLayer = useRef<L.LayerGroup | null>(null);
+  const labelsLayer = useRef<L.LayerGroup | null>(null);
+  const [autoScan, setAutoScan] = useState<boolean>(false);
+  const [showLabels, setShowLabels] = useState<boolean>(true);
+  const debounceId = useRef<number | null>(null);
 
   useEffect(() => {
     if (map && !detectionLayer.current) {
       detectionLayer.current = L.layerGroup().addTo(map);
+    }
+    if (map && !labelsLayer.current) {
+      labelsLayer.current = L.layerGroup().addTo(map);
     }
     
     return () => {
       if (detectionLayer.current && map) {
         map.removeLayer(detectionLayer.current);
       }
+      if (labelsLayer.current && map) {
+        map.removeLayer(labelsLayer.current);
+      }
     };
   }, [map]);
 
-  const startDetection = async () => {
+  // Persist and hydrate UI toggles
+  useEffect(() => {
+    try {
+      const a = localStorage.getItem('asphalt-auto-scan');
+      const l = localStorage.getItem('asphalt-show-labels');
+      if (a !== null) setAutoScan(a === '1');
+      if (l !== null) setShowLabels(l === '1');
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try { localStorage.setItem('asphalt-auto-scan', autoScan ? '1' : '0'); } catch {}
+  }, [autoScan]);
+
+  useEffect(() => {
+    try { localStorage.setItem('asphalt-show-labels', showLabels ? '1' : '0'); } catch {}
+  }, [showLabels]);
+
+  // Debounced re-run of detection when map view changes and autoScan is enabled
+  useEffect(() => {
+    if (!map) return;
+    const schedule = () => {
+      if (!autoScan) return;
+      if (debounceId.current) window.clearTimeout(debounceId.current);
+      debounceId.current = window.setTimeout(() => {
+        startDetection({ auto: true });
+      }, 600);
+    };
+    map.on('moveend', schedule);
+    map.on('zoomend', schedule);
+    return () => {
+      map.off('moveend', schedule);
+      map.off('zoomend', schedule);
+      if (debounceId.current) {
+        window.clearTimeout(debounceId.current);
+        debounceId.current = null;
+      }
+    };
+  }, [map, autoScan]);
+
+  const getAsphaltColor = useCallback((type: AsphaltRegion['surfaceType']): string => {
+    switch (type) {
+      case 'driveway': return '#3b82f6';
+      case 'parking_lot': return '#10b981';
+      case 'road': return '#f59e0b';
+      case 'path': return '#8b5cf6';
+      default: return '#6b7280';
+    }
+  }, []);
+
+  const startDetection = async (opts?: { auto?: boolean }) => {
     if (!map) {
       toast.error('Map not available for analysis');
       return;
@@ -61,9 +121,11 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
       const bounds = map.getBounds();
       const zoom = map.getZoom();
 
-      // Queue AI job in Supabase; worker may process it (dev) or backend (prod)
-      const aoi = { north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest(), zoom };
-      const jobId = await AiJobsService.queue(aoi, { model: 'asphalt-v1' });
+      // Queue AI job only for manual runs to avoid spamming when auto-scanning
+      if (!opts?.auto) {
+        const aoi = { north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest(), zoom };
+        await AiJobsService.queue(aoi, { model: 'asphalt-v1' });
+      }
 
       // Show synthetic progress bar while waiting
       const interval = setInterval(() => {
@@ -84,10 +146,29 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
       setIsDetecting(false);
       onDetectionComplete(local.asphaltRegions);
 
-      // Add detection overlay to map
+      // Clear and add detection overlay to map
+      if (detectionLayer.current) detectionLayer.current.clearLayers();
+      if (labelsLayer.current) labelsLayer.current.clearLayers();
       local.asphaltRegions.forEach(result => {
-        const polygon = L.polygon(result.polygon as L.LatLngTuple[], { color: '#22c55e', fillOpacity: 0.3 });
+        const color = getAsphaltColor(result.surfaceType);
+        const polygon = L.polygon(result.polygon as L.LatLngTuple[], {
+          color,
+          weight: 2,
+          opacity: 0.9,
+          fillColor: color,
+          fillOpacity: 0.25,
+          className: `asphalt-${result.surfaceType}`
+        });
         if (detectionLayer.current) detectionLayer.current.addLayer(polygon);
+
+        if (showLabels && labelsLayer.current) {
+          const center = (polygon.getBounds().getCenter());
+          const labelHtml = `<div class="px-2 py-1 rounded text-[11px] font-semibold bg-white/90 border border-gray-300 shadow-sm whitespace-nowrap">${result.surfaceType.replace('_', ' ')} · ${Math.round(result.area).toLocaleString()} sq ft</div>`;
+          const label = L.marker(center, {
+            icon: L.divIcon({ html: labelHtml, className: 'asphalt-area-label', iconSize: [0, 0], iconAnchor: [0, 0] })
+          });
+          labelsLayer.current.addLayer(label);
+        }
       });
 
       // Optionally, attach jobId to layer for later inspection
@@ -103,6 +184,9 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
   const clearResults = () => {
     if (detectionLayer.current) {
       detectionLayer.current.clearLayers();
+    }
+    if (labelsLayer.current) {
+      labelsLayer.current.clearLayers();
     }
     setResults([]);
     setDetectionProgress(0);
@@ -175,7 +259,7 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
 
         <div className="flex gap-2">
           <Button
-            onClick={startDetection}
+            onClick={() => startDetection()}
             disabled={isDetecting}
             className="flex-1"
           >
@@ -187,6 +271,41 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
             disabled={results.length === 0}
           >
             Clear
+          </Button>
+        </div>
+
+        {/* Auto-scan and Labels toggles */}
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            variant={autoScan ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setAutoScan(v => !v)}
+          >
+            {autoScan ? 'Auto-scan: On' : 'Auto-scan: Off'}
+          </Button>
+          <Button
+            variant={showLabels ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => {
+              setShowLabels(v => {
+                const next = !v;
+                // Re-render labels without re-running detection
+                if (labelsLayer.current) labelsLayer.current.clearLayers();
+                if (next && results.length && map && detectionLayer.current && labelsLayer.current) {
+                  results.forEach(result => {
+                    const color = getAsphaltColor(result.surfaceType);
+                    const polygon = L.polygon(result.polygon as L.LatLngTuple[], { color });
+                    const center = polygon.getBounds().getCenter();
+                    const labelHtml = `<div class=\"px-2 py-1 rounded text-[11px] font-semibold bg-white/90 border border-gray-300 shadow-sm whitespace-nowrap\">${result.surfaceType.replace('_', ' ')} · ${Math.round(result.area).toLocaleString()} sq ft</div>`;
+                    const label = L.marker(center, { icon: L.divIcon({ html: labelHtml, className: 'asphalt-area-label', iconSize: [0, 0], iconAnchor: [0, 0] }) });
+                    labelsLayer.current!.addLayer(label);
+                  });
+                }
+                return next;
+              });
+            }}
+          >
+            {showLabels ? 'Labels: On' : 'Labels: Off'}
           </Button>
         </div>
 
@@ -204,7 +323,7 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
                   </span>
                 </div>
                 <div className="text-sm space-y-1">
-                  <div>Area: {result.area} sq ft</div>
+                  <div>Area: {Math.round(result.area).toLocaleString()} sq ft</div>
                   <div>Length: {result.length} ft</div>
                   <div>Width: {result.width} ft</div>
                 </div>
