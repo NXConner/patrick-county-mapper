@@ -38,6 +38,10 @@ interface MeasurementToolbarProps {
   onLayerToggle?: (layerId: string) => void;
   onAsphaltDetection?: () => void;
   showAsphaltDetector?: boolean;
+  autoAsphaltScan?: boolean;
+  onAutoAsphaltScanChange?: (enabled: boolean) => void;
+  showAsphaltLabels?: boolean;
+  onShowAsphaltLabelsChange?: (enabled: boolean) => void;
   readOnly?: boolean;
   snappingEnabled?: boolean;
   onSnappingChange?: (enabled: boolean) => void;
@@ -53,6 +57,10 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   onLayerToggle,
   onAsphaltDetection,
   showAsphaltDetector,
+  autoAsphaltScan,
+  onAutoAsphaltScanChange,
+  showAsphaltLabels,
+  onShowAsphaltLabelsChange,
   readOnly,
   snappingEnabled,
   onSnappingChange,
@@ -365,6 +373,25 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
               <div className="text-xs text-purple-600 bg-purple-100 dark:bg-purple-900/20 px-2 py-1 rounded">
                 🚗 Auto-detects driveways • 🅿️ Parking lots • 📐 Precise measurements
               </div>
+            </div>
+          )}
+
+          {showAsphaltDetector && (
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant={autoAsphaltScan ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => onAutoAsphaltScanChange?.(!autoAsphaltScan)}
+              >
+                {autoAsphaltScan ? 'Auto-scan: On' : 'Auto-scan: Off'}
+              </Button>
+              <Button
+                variant={showAsphaltLabels ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => onShowAsphaltLabelsChange?.(!showAsphaltLabels)}
+              >
+                {showAsphaltLabels ? 'Labels: On' : 'Labels: Off'}
+              </Button>
             </div>
           )}
 
