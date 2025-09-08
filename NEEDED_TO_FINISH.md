@@ -9,8 +9,8 @@ This document tracks outstanding work to bring the app to a “complete” state
 ---
 
 ### 0) Critical setup and fixes
-- [ ] Replace hardcoded Supabase keys with env vars in `src/integrations/supabase/client.ts` (rotate leaked key) — Effort: S
-- [ ] Add `.env.example` and real `.env` for frontend and serverless — Effort: S
+- [x] Replace hardcoded Supabase keys with env vars in `src/integrations/supabase/client.ts` (rotate leaked key) — Effort: S
+- [x] Add `.env.example` and real `.env` for frontend and serverless — Effort: S
 - [ ] Apply all Supabase migrations in `supabase/migrations/` to project — Effort: M
 - [ ] Choose hosting (Vercel or Netlify) and remove the other’s checkout function to avoid drift — Effort: S
 
