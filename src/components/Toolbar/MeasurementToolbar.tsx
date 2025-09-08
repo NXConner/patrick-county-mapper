@@ -20,7 +20,8 @@ import {
   BarChart3,
   Download,
   Share2,
-  ExternalLink
+  ExternalLink,
+  Users
 } from 'lucide-react';
 import { COUNTY_SOURCES } from '@/data/countySources';
 
@@ -42,6 +43,8 @@ interface MeasurementToolbarProps {
   onAutoAsphaltScanChange?: (enabled: boolean) => void;
   showAsphaltLabels?: boolean;
   onShowAsphaltLabelsChange?: (enabled: boolean) => void;
+  onEmployeeTracking?: () => void;
+  showEmployeeTracker?: boolean;
   readOnly?: boolean;
   snappingEnabled?: boolean;
   onSnappingChange?: (enabled: boolean) => void;
@@ -66,6 +69,8 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
   onAutoAsphaltScanChange,
   showAsphaltLabels,
   onShowAsphaltLabelsChange,
+  onEmployeeTracking,
+  showEmployeeTracker,
   readOnly,
   snappingEnabled,
   onSnappingChange,
@@ -363,6 +368,24 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
           >
             <Zap className="w-4 h-4 mr-2" />
             {showAsphaltDetector ? 'Hide AI Detection' : 'Enhanced AI Detection'}
+          </Button>
+
+          <Button
+            onClick={() => {
+              if (readOnly) return;
+              onEmployeeTracking?.();
+              setMobileOpen(false);
+              onSidebarOpenChange?.(false);
+            }}
+            variant={showEmployeeTracker ? "default" : "outline"}
+            size="sm"
+            className={`w-full justify-start h-12 transition-all duration-200 ${
+              showEmployeeTracker ? 'btn-primary-enhanced' : 'btn-secondary-enhanced'
+            }`}
+            disabled={!!readOnly}
+          >
+            <Users className="w-4 h-4 mr-2" />
+            {showEmployeeTracker ? 'Hide Employee Tracking' : 'Employee Tracking'}
           </Button>
 
           

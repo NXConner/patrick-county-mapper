@@ -21,6 +21,7 @@ const PropertyPanel = lazyWithPreload(() => import('@/components/PropertyInfo/Pr
 const AsphaltDetector = lazyWithPreload(() => import('@/components/Map/AsphaltDetector'));
 const EnhancedAsphaltDetector = lazyWithPreload(() => import('@/components/Map/EnhancedAsphaltDetector'));
 const OverlayManager = lazyWithPreload(() => import('@/components/Map/OverlayManager'));
+const EmployeeTracker = lazyWithPreload(() => import('@/components/Tracking/EmployeeTracker'));
 const PrintComposer = lazyWithPreload(() => import('@/components/Map/PrintComposer'));
 const VersionHistoryDialog = lazyWithPreload(() => import('@/components/Workspace/VersionHistoryDialog'));
 const BookmarksDialog = lazyWithPreload(() => import('@/components/Workspace/BookmarksDialog'));
@@ -51,6 +52,7 @@ const Index = () => {
   const [workspaceName, setWorkspaceName] = useState('default');
 
   const [showAsphaltDetector, setShowAsphaltDetector] = useState(false);
+  const [showEmployeeTracker, setShowEmployeeTracker] = useState(false);
   const [autoAsphaltScan, setAutoAsphaltScan] = useState<boolean>(() => {
     try {
       const v = localStorage.getItem('asphalt-auto-scan');
@@ -255,6 +257,7 @@ const Index = () => {
       AsphaltDetector.preload();
       EnhancedAsphaltDetector.preload();
       OverlayManager.preload();
+      EmployeeTracker.preload();
       ServiceInfo.preload();
     };
 
@@ -566,6 +569,8 @@ const Index = () => {
             onAsphaltDetection={() => setShowAsphaltDetector(!showAsphaltDetector)}
             showAsphaltDetector={showAsphaltDetector}
             autoAsphaltScan={autoAsphaltScan}
+            onEmployeeTracking={() => setShowEmployeeTracker(!showEmployeeTracker)}
+            showEmployeeTracker={showEmployeeTracker}
             onAutoAsphaltScanChange={setAutoAsphaltScan}
             showAsphaltLabels={showAsphaltLabels}
             onShowAsphaltLabelsChange={setShowAsphaltLabels}
