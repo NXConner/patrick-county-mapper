@@ -11,6 +11,8 @@ import type { FreeMapContainerRef } from '@/components/Map/FreeMapContainer';
 import type { FreeMapContainerProps } from '@/components/Map/FreeMapContainer';
 import { getStateFromUrl, setStateInUrl } from '@/lib/urlState';
 import { useWorkspaceRole } from '@/hooks/useWorkspaceRole';
+import { useUserPlan } from '@/hooks/useUserPlan';
+import { planAllows } from '@/lib/plan';
 
 // Lazy load heavy components
 const FreeMapContainer = lazyWithPreload(() => import('@/components/Map/FreeMapContainer'));
@@ -75,6 +77,7 @@ const Index = () => {
   const [showImport, setShowImport] = useState(false);
   const { isViewer } = useWorkspaceRole(workspaceName);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
+  const { plan } = useUserPlan();
 
   // Map reference for communication with map component
   const mapRef = useRef<FreeMapContainerRef | null>(null);
@@ -346,7 +349,7 @@ const Index = () => {
                 />
                 <Button variant="secondary" size="sm" onClick={saveWorkspace} className="text-xs" disabled={isViewer}>Save</Button>
                 <Button variant="secondary" size="sm" onClick={loadWorkspace} className="text-xs">Load</Button>
-                <Button variant="outline" size="sm" className="text-xs" disabled={isViewer} onClick={async () => {
+                <Button variant="outline" size="sm" className="text-xs" disabled={isViewer || !planAllows('collab', plan)} onClick={async () => {
                   try {
                     const map = mapRef.current?.getMap?.();
                     if (!map) return;
@@ -433,10 +436,10 @@ const Index = () => {
                     toast.error('Failed to copy link');
                   }
                 }} title="Copy Share Link">Copy Link</Button>
-                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowEstimator(true)} title="Estimator">Estimate</Button>
-                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowExportHistory(true)} title="Export History">Exports</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowEstimator(true)} title="Estimator" disabled={!planAllows('estimator', plan)}>Estimate</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowExportHistory(true)} title="Export History" disabled={!planAllows('export', plan)}>Exports</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowPrefetch(true)} title="Offline Prefetch">Prefetch</Button>
-                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowBatchAoi(true)} title="Batch AOI">Batch AOI</Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowBatchAoi(true)} title="Batch AOI" disabled={!planAllows('ai', plan)}>Batch AOI</Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowImport(true)} title="Import Data">Import</Button>
               </div>
               <div className="hidden xl:flex items-center gap-2 text-xs text-muted-foreground max-w-xs">
@@ -580,14 +583,7 @@ const Index = () => {
           <PropertyPanel
             isOpen={propertyPanelOpen}
             onToggle={() => setPropertyPanelOpen(!propertyPanelOpen)}
-            propertyInfo={{
-              parcelId: "Sample-123",
-              owner: "John Doe",
-              address: "123 Main St, Stuart, VA",
-              acreage: 2.5,
-              taxValue: 150000,
-              zoning: "Residential"
-            }}
+            propertyInfo={selectedProperty as any}
             onOpenParcel={async (parcelId) => {
               const { PropertyService } = await import('@/services/PropertyService');
               const rec = await PropertyService.getByParcel(parcelId);
