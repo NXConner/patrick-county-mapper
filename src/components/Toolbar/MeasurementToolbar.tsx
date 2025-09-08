@@ -219,7 +219,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
         <h2 className="text-lg font-bold text-foreground">GIS Tools</h2>
         <Button
           onClick={() => {
-            setIsMobileMenuOpen(false);
+            setMobileOpen(false);
             onSidebarOpenChange?.(false);
           }}
           variant="ghost"
@@ -260,7 +260,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
                 onClick={() => {
                   if (readOnly && tool.id !== 'select' && tool.id !== 'print') return;
                   onToolChange(tool.id);
-                  setIsMobileMenuOpen(false);
+                  setMobileOpen(false);
                   onSidebarOpenChange?.(false);
                 }}
                 className={`h-16 p-3 flex flex-col items-center gap-2 transition-all duration-200 ${
@@ -351,7 +351,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
             onClick={() => {
               if (readOnly) return;
               onAsphaltDetection?.();
-              setIsMobileMenuOpen(false);
+              setMobileOpen(false);
               onSidebarOpenChange?.(false);
             }}
             variant={showAsphaltDetector ? "default" : "outline"}
@@ -503,7 +503,7 @@ const MeasurementToolbar: React.FC<MeasurementToolbarProps> = ({
       </div>
       {/* Mobile: Enhanced Sheet/Drawer */}
       <div className="sm:hidden">
-        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <Sheet open={isMobileMenuOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
             <Button
               size="sm"
