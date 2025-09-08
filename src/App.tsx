@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
+import { AuthProvider } from "@/providers/AuthProvider";
+import RequireAuth from "@/components/routing/RequireAuth";
 
 
 // Lazy load pages for better performance
@@ -13,6 +15,7 @@ const Index = lazy(() => import("./pages/Index"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AnalyticsPage = lazy(() => import("@/pages/Analytics"));
 const Billing = lazy(() => import("@/pages/Billing"));
+const Login = lazy(() => import("@/pages/Login"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,15 +55,18 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <ErrorBoundary>
-            <Suspense fallback={<LoadingSpinner />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/analytics" element={<AnalyticsPage />} />
-                <Route path="/billing" element={<Billing />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <AuthProvider>
+              <Suspense fallback={<LoadingSpinner />}>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/" element={<Index />} />
+                  <Route path="/analytics" element={<RequireAuth><AnalyticsPage /></RequireAuth>} />
+                  <Route path="/billing" element={<RequireAuth><Billing /></RequireAuth>} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </AuthProvider>
           </ErrorBoundary>
         </BrowserRouter>
       </TooltipProvider>
