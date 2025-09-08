@@ -3,6 +3,8 @@ import type { Request, Response, NextFunction } from "express";
 import { prisma } from "../db.js";
 import { DateTime } from "luxon";
 import geolib from "geolib";
+import { evaluateGeofencesForEmployee } from "../services/geofenceService.js";
+import { upsertTripForMovement, driverPassengerHeuristic } from "../services/tripService.js";
 
 const router = Router();
 
@@ -52,6 +54,21 @@ router.post("/locations", requireUser, async (req: Request & { userId?: string }
   });
 
   const created = await prisma.locationSample.createMany({ data: toCreate });
+
+  // Evaluate last point for geofences and trips
+  const lastPointSample = toCreate[toCreate.length - 1];
+  if (lastPointSample) {
+    await evaluateGeofencesForEmployee(userId, lastPointSample.lat, lastPointSample.lng, lastPointSample.timestamp);
+    await upsertTripForMovement(userId, lastPointSample.timestamp, lastPointSample.lat, lastPointSample.lng, lastPointSample.speedMps ?? null);
+    const driver = await driverPassengerHeuristic(userId, lastPointSample.timestamp);
+    if (driver != null) {
+      const openTrip = await prisma.trip.findFirst({ where: { employeeId: userId, endAt: null }, orderBy: { startAt: "desc" } });
+      if (openTrip) {
+        await prisma.trip.update({ where: { id: openTrip.id }, data: { isDriver: driver } });
+      }
+    }
+  }
+
   res.json({ inserted: created.count });
 });
 
