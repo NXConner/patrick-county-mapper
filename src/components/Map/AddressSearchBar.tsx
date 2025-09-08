@@ -108,6 +108,8 @@ const AddressSearchBar: React.FC<AddressSearchBarProps> = ({
         extratags: '1',
         namedetails: '1'
       });
+      const contactEmail = (import.meta as any).env?.VITE_NOMINATIM_EMAIL as string | undefined;
+      if (contactEmail) params.set('email', contactEmail);
 
       const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
         signal: abortRef.current.signal,

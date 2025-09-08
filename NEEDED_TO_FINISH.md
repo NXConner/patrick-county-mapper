@@ -20,7 +20,7 @@ This document tracks outstanding work to bring the app to a “complete” state
 - [ ] Implement auth UI (email/password + OAuth), session restore, protected routes — Effort: M
 
 ### 2) Map layers and data sources
-- [ ] Populate `src/data/overlaySources.ts` with real WMS endpoints (FEMA NFHL flood, NRCS soils, local zoning) — Effort: S
+- [x] Populate `src/data/overlaySources.ts` with real WMS endpoints (FEMA NFHL flood, NRCS soils, local zoning) — Effort: S
 - [ ] Populate `src/data/countySources.ts` with parcel `parcelEndpoint` for VA/NC counties — Effort: M
 - [ ] Wire `PropertyPanel` to real `PropertyService` records and remove sample data — Effort: S
 
