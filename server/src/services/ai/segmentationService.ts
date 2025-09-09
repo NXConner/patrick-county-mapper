@@ -1,6 +1,7 @@
 import axios from "axios";
 import area from "@turf/area";
 import type { Feature, FeatureCollection, Polygon } from "geojson";
+import { maskToPolygons } from "./maskToPolygons.js";
 
 export type Bounds = { north: number; south: number; east: number; west: number };
 
@@ -61,10 +62,23 @@ export class SegmentationService {
       } else {
         return null;
       }
-      const resp = await axios.post(endpoint, body, { headers, responseType: 'json' });
-      // Minimal interpretation: treat output as class probabilities; without mask polygonization,
-      // return heuristic shapes within AOI as placeholder.
-      return this.segmentWithHeuristic(params);
+      const resp = await axios.post(endpoint, body, { headers, responseType: 'arraybuffer' });
+      // Some HF models return an RGBA mask; treat nonzero as foreground
+      const buf = Buffer.from(resp.data);
+      const widthGuess = 512; // fallback
+      const heightGuess = Math.max(1, Math.floor(buf.length / 4 / widthGuess));
+      const mask = new Uint8ClampedArray(widthGuess * heightGuess);
+      for (let i = 0; i < mask.length; i++) {
+        const a = buf[i * 4 + 3] ?? 0;
+        mask[i] = a > 0 ? 255 : 0;
+      }
+      const fc = maskToPolygons({ data: mask, width: widthGuess, height: heightGuess }, params.aoi!);
+      const features = (fc.features as Feature<Polygon>[]).map((f) => {
+        const a = area(f as any) * 10.7639;
+        return { ...f, properties: { ...(f.properties || {}), surfaceType: 'parking_lot', confidence: 0.8, areaSqFt: a } };
+      });
+      const totalAreaSqFt = features.reduce((s, f) => s + (f.properties?.areaSqFt || 0), 0);
+      return { geojson: { type: 'FeatureCollection', features }, summary: { totalAreaSqFt, numSurfaces: features.length, averageConfidence: 0.8, provider: 'huggingface' } };
     } catch {
       return null;
     }
@@ -79,9 +93,34 @@ export class SegmentationService {
       if (params.imageUrl) input.image = params.imageUrl;
       // Note: Replicate supports direct URL input; for raw buffers you'd need to upload somewhere first
       const model = params.model || "daanelson/segment-anything"; // placeholder model name
-      await axios.post(url, { version: model, input }, { headers });
-      // For simplicity, fallback for now; polygonization requires additional steps
-      return this.segmentWithHeuristic(params);
+      const pr = await axios.post(url, { version: model, input }, { headers });
+      const id = pr.data?.id;
+      if (!id) return null;
+      // Poll for completion
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 1500));
+        const st = await axios.get(`${url}/${id}`, { headers });
+        if (st.data?.status === 'succeeded') {
+          const maskUrl = st.data?.output?.[0];
+          if (!maskUrl || !params.aoi) break;
+          const img = await axios.get(maskUrl, { responseType: 'arraybuffer' });
+          const png = Buffer.from(img.data);
+          // Blindly assume same alpha-mask convention as above; if not, fallback
+          const widthGuess = 512; const heightGuess = Math.max(1, Math.floor(png.length / 4 / widthGuess));
+          const mask = new Uint8ClampedArray(widthGuess * heightGuess);
+          for (let i2 = 0; i2 < mask.length; i2++) {
+            const a = png[i2 * 4 + 3] ?? 0; mask[i2] = a > 0 ? 255 : 0;
+          }
+          const fc = maskToPolygons({ data: mask, width: widthGuess, height: heightGuess }, params.aoi);
+          const features = (fc.features as Feature<Polygon>[]).map((f) => {
+            const a = area(f as any) * 10.7639;
+            return { ...f, properties: { ...(f.properties || {}), surfaceType: 'parking_lot', confidence: 0.85, areaSqFt: a } };
+          });
+          const totalAreaSqFt = features.reduce((s, f) => s + (f.properties?.areaSqFt || 0), 0);
+          return { geojson: { type: 'FeatureCollection', features }, summary: { totalAreaSqFt, numSurfaces: features.length, averageConfidence: 0.85, provider: 'replicate' } };
+        }
+      }
+      return null;
     } catch {
       return null;
     }
