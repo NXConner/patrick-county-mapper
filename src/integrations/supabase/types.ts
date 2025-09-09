@@ -439,6 +439,39 @@ export type Database = {
         }
         Relationships: []
       }
+      chart_of_accounts: {
+        Row: {
+          account_code: string
+          account_name: string
+          account_subtype: string | null
+          account_type: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          account_subtype?: string | null
+          account_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          account_subtype?: string | null
+          account_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           contact: string | null
@@ -816,32 +849,56 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          billing_address: string | null
+          company_name: string | null
           created_at: string | null
           created_by: string | null
+          credit_limit: number | null
+          customer_name: string | null
           email: string | null
           id: string
+          is_active: boolean | null
           name: string
+          payment_terms: number | null
           phone: string | null
+          shipping_address: string | null
+          tax_id: string | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
+          billing_address?: string | null
+          company_name?: string | null
           created_at?: string | null
           created_by?: string | null
+          credit_limit?: number | null
+          customer_name?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
+          payment_terms?: number | null
           phone?: string | null
+          shipping_address?: string | null
+          tax_id?: string | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
+          billing_address?: string | null
+          company_name?: string | null
           created_at?: string | null
           created_by?: string | null
+          credit_limit?: number | null
+          customer_name?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
+          payment_terms?: number | null
           phone?: string | null
+          shipping_address?: string | null
+          tax_id?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1405,10 +1462,15 @@ export type Database = {
           document_url: string | null
           employee_id: string | null
           expiry_date: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
           id: string
           is_verified: boolean | null
+          mime_type: string | null
           notes: string | null
           upload_date: string | null
+          uploaded_at: string | null
         }
         Insert: {
           document_name?: string | null
@@ -1416,10 +1478,15 @@ export type Database = {
           document_url?: string | null
           employee_id?: string | null
           expiry_date?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
           id?: string
           is_verified?: boolean | null
+          mime_type?: string | null
           notes?: string | null
           upload_date?: string | null
+          uploaded_at?: string | null
         }
         Update: {
           document_name?: string | null
@@ -1427,14 +1494,66 @@ export type Database = {
           document_url?: string | null
           employee_id?: string | null
           expiry_date?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
           id?: string
           is_verified?: boolean | null
+          mime_type?: string | null
           notes?: string | null
           upload_date?: string | null
+          uploaded_at?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_locations: {
+        Row: {
+          accuracy: number | null
+          created_at: string | null
+          employee_id: string
+          heading: number | null
+          id: string
+          is_active: boolean | null
+          latitude: number
+          longitude: number
+          speed: number | null
+          timestamp: string
+        }
+        Insert: {
+          accuracy?: number | null
+          created_at?: string | null
+          employee_id: string
+          heading?: number | null
+          id?: string
+          is_active?: boolean | null
+          latitude: number
+          longitude: number
+          speed?: number | null
+          timestamp?: string
+        }
+        Update: {
+          accuracy?: number | null
+          created_at?: string | null
+          employee_id?: string
+          heading?: number | null
+          id?: string
+          is_active?: boolean | null
+          latitude?: number
+          longitude?: number
+          speed?: number | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_locations_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees"
@@ -1543,6 +1662,54 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_time_tracking: {
+        Row: {
+          break_end_time: string | null
+          break_start_time: string | null
+          clock_in_time: string
+          clock_out_time: string | null
+          created_at: string
+          employee_id: number
+          hourly_rate: number | null
+          id: string
+          location_data: Json | null
+          status: string
+          total_hours: number | null
+          total_pay: number | null
+          work_date: string
+        }
+        Insert: {
+          break_end_time?: string | null
+          break_start_time?: string | null
+          clock_in_time: string
+          clock_out_time?: string | null
+          created_at?: string
+          employee_id: number
+          hourly_rate?: number | null
+          id?: string
+          location_data?: Json | null
+          status?: string
+          total_hours?: number | null
+          total_pay?: number | null
+          work_date: string
+        }
+        Update: {
+          break_end_time?: string | null
+          break_start_time?: string | null
+          clock_in_time?: string
+          clock_out_time?: string | null
+          created_at?: string
+          employee_id?: number
+          hourly_rate?: number | null
+          id?: string
+          location_data?: Json | null
+          status?: string
+          total_hours?: number | null
+          total_pay?: number | null
+          work_date?: string
+        }
+        Relationships: []
+      }
       employee_violations: {
         Row: {
           auto_generated: boolean | null
@@ -1593,19 +1760,26 @@ export type Database = {
       employees: {
         Row: {
           address: string | null
+          age: number | null
           avatar_url: string | null
+          birthday: string | null
+          contract_signed: boolean | null
           created_at: string | null
           department: string | null
           driver_license_expiry: string | null
           driver_license_number: string | null
           email: string
+          emergency_contact: string | null
           emergency_contact_name: string | null
           employment_status: string | null
           first_name: string
+          handbook_received: boolean | null
           hire_date: string | null
           hourly_rate: number | null
           id: string
           last_name: string
+          license_number: string | null
+          notes: string | null
           performance_score: number | null
           phone: string | null
           role: string | null
@@ -1614,23 +1788,31 @@ export type Database = {
           status: string | null
           updated_at: string | null
           user_id: string | null
+          w2_filed: boolean | null
           weekly_hours: number | null
         }
         Insert: {
           address?: string | null
+          age?: number | null
           avatar_url?: string | null
+          birthday?: string | null
+          contract_signed?: boolean | null
           created_at?: string | null
           department?: string | null
           driver_license_expiry?: string | null
           driver_license_number?: string | null
           email: string
+          emergency_contact?: string | null
           emergency_contact_name?: string | null
           employment_status?: string | null
           first_name: string
+          handbook_received?: boolean | null
           hire_date?: string | null
           hourly_rate?: number | null
           id?: string
           last_name: string
+          license_number?: string | null
+          notes?: string | null
           performance_score?: number | null
           phone?: string | null
           role?: string | null
@@ -1639,23 +1821,31 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
+          w2_filed?: boolean | null
           weekly_hours?: number | null
         }
         Update: {
           address?: string | null
+          age?: number | null
           avatar_url?: string | null
+          birthday?: string | null
+          contract_signed?: boolean | null
           created_at?: string | null
           department?: string | null
           driver_license_expiry?: string | null
           driver_license_number?: string | null
           email?: string
+          emergency_contact?: string | null
           emergency_contact_name?: string | null
           employment_status?: string | null
           first_name?: string
+          handbook_received?: boolean | null
           hire_date?: string | null
           hourly_rate?: number | null
           id?: string
           last_name?: string
+          license_number?: string | null
+          notes?: string | null
           performance_score?: number | null
           phone?: string | null
           role?: string | null
@@ -1664,6 +1854,7 @@ export type Database = {
           status?: string | null
           updated_at?: string | null
           user_id?: string | null
+          w2_filed?: boolean | null
           weekly_hours?: number | null
         }
         Relationships: [
@@ -2846,6 +3037,63 @@ export type Database = {
           },
         ]
       }
+      payroll: {
+        Row: {
+          created_at: string
+          employee_id: number
+          federal_tax: number
+          gross_pay: number
+          id: string
+          medicare: number
+          net_pay: number
+          other_deductions: number
+          overtime_hours: number
+          pay_date: string
+          pay_period_end: string
+          pay_period_start: string
+          regular_hours: number
+          social_security: number
+          state_tax: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id: number
+          federal_tax?: number
+          gross_pay?: number
+          id?: string
+          medicare?: number
+          net_pay?: number
+          other_deductions?: number
+          overtime_hours?: number
+          pay_date: string
+          pay_period_end: string
+          pay_period_start: string
+          regular_hours?: number
+          social_security?: number
+          state_tax?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: number
+          federal_tax?: number
+          gross_pay?: number
+          id?: string
+          medicare?: number
+          net_pay?: number
+          other_deductions?: number
+          overtime_hours?: number
+          pay_date?: string
+          pay_period_end?: string
+          pay_period_start?: string
+          regular_hours?: number
+          social_security?: number
+          state_tax?: number
+          status?: string
+        }
+        Relationships: []
+      }
       payroll_records: {
         Row: {
           created_at: string | null
@@ -3546,6 +3794,7 @@ export type Database = {
           created_at: string | null
           file_url: string | null
           id: string
+          receipt_date: string
           uploaded_by: string | null
         }
         Insert: {
@@ -3553,6 +3802,7 @@ export type Database = {
           created_at?: string | null
           file_url?: string | null
           id?: string
+          receipt_date: string
           uploaded_by?: string | null
         }
         Update: {
@@ -3560,6 +3810,7 @@ export type Database = {
           created_at?: string | null
           file_url?: string | null
           id?: string
+          receipt_date?: string
           uploaded_by?: string | null
         }
         Relationships: [
@@ -4108,6 +4359,45 @@ export type Database = {
           recordcount?: number | null
           status?: string | null
           table?: string | null
+        }
+        Relationships: []
+      }
+      tax_records: {
+        Row: {
+          amount_owed: number | null
+          amount_paid: number | null
+          created_at: string
+          due_date: string | null
+          filed_date: string | null
+          id: string
+          notes: string | null
+          status: string
+          tax_type: string
+          tax_year: number
+        }
+        Insert: {
+          amount_owed?: number | null
+          amount_paid?: number | null
+          created_at?: string
+          due_date?: string | null
+          filed_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          tax_type: string
+          tax_year: number
+        }
+        Update: {
+          amount_owed?: number | null
+          amount_paid?: number | null
+          created_at?: string
+          due_date?: string | null
+          filed_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          tax_type?: string
+          tax_year?: number
         }
         Relationships: []
       }
@@ -4757,22 +5047,46 @@ export type Database = {
       }
       vendors: {
         Row: {
+          address: string | null
+          company_name: string | null
           contact_info: string | null
           created_at: string | null
+          email: string | null
           id: string
+          is_active: boolean | null
           name: string
+          payment_terms: number | null
+          phone: string | null
+          tax_id: string | null
+          vendor_name: string | null
         }
         Insert: {
+          address?: string | null
+          company_name?: string | null
           contact_info?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
+          is_active?: boolean | null
           name: string
+          payment_terms?: number | null
+          phone?: string | null
+          tax_id?: string | null
+          vendor_name?: string | null
         }
         Update: {
+          address?: string | null
+          company_name?: string | null
           contact_info?: string | null
           created_at?: string | null
+          email?: string | null
           id?: string
+          is_active?: boolean | null
           name?: string
+          payment_terms?: number | null
+          phone?: string | null
+          tax_id?: string | null
+          vendor_name?: string | null
         }
         Relationships: []
       }

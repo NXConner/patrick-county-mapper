@@ -210,42 +210,57 @@ const Index = () => {
   }, []);
 
   const saveWorkspace = useCallback(async () => {
-    const drawings = mapRef.current?.getDrawingGeoJSON?.() || null;
-    const mapInstance = mapRef.current?.getMap?.();
-    const center = mapInstance ? mapInstance.getCenter() : { lat: 36.6837, lng: -80.2876 };
-    const zoom = mapInstance ? mapInstance.getZoom() : 10;
-    const payload = {
-      name: workspaceName,
-      createdAt: new Date().toISOString(),
-      map: {
-        center: [center.lat, center.lng] as [number, number],
-        zoom,
-        mapService: selectedMapService,
-        layerStates
-      },
-      drawings
-    };
-    const { WorkspaceService } = await import('@/services/WorkspaceService');
-    await WorkspaceService.save(payload);
-    toast.success('Workspace saved');
-  }, [workspaceName, selectedMapService, layerStates]);
+    try {
+      const drawings = mapRef.current?.getDrawingGeoJSON?.() || null;
+      const mapInstance = mapRef.current?.getMap?.();
+      const center = mapInstance ? mapInstance.getCenter() : { lat: 36.6837, lng: -80.2876 };
+      const zoom = mapInstance ? mapInstance.getZoom() : 10;
+      const payload = {
+        name: workspaceName,
+        createdAt: new Date().toISOString(),
+        map: {
+          center: [center.lat, center.lng] as [number, number],
+          zoom,
+          mapService: selectedMapService,
+          layerStates
+        },
+        drawings
+      };
+      const { WorkspaceService } = await import('@/services/WorkspaceService');
+      await WorkspaceService.save(payload);
+      toast.success('Workspace saved');
+    } catch (error: any) {
+      console.error('Failed to save workspace:', error);
+      if (error.message?.includes('Not authenticated')) {
+        toast.error('Please log in to save workspaces');
+        navigate('/login');
+      } else {
+        toast.error('Failed to save workspace');
+      }
+    }
+  }, [workspaceName, selectedMapService, layerStates, navigate]);
 
   const loadWorkspace = useCallback(async () => {
-    const { WorkspaceService } = await import('@/services/WorkspaceService');
-    const ws = await WorkspaceService.load(workspaceName);
-    if (!ws) {
-      toast.error('Workspace not found');
-      return;
+    try {
+      const { WorkspaceService } = await import('@/services/WorkspaceService');
+      const ws = await WorkspaceService.load(workspaceName);
+      if (!ws) {
+        toast.error('Workspace not found');
+        return;
+      }
+      setSelectedMapService(ws.map.mapService);
+      setLayerStates(ws.map.layerStates as any);
+      if (mapRef.current?.getMap?.()) {
+        mapRef.current.getMap()?.setView(ws.map.center as any, ws.map.zoom);
+      }
+      if (ws.drawings) {
+        mapRef.current?.loadDrawingGeoJSON?.(ws.drawings);
+      }
+      toast.success('Workspace loaded');
+    } catch (error: any) {
+      console.error('Failed to load workspace:', error);
+      toast.error('Failed to load workspace');
     }
-    setSelectedMapService(ws.map.mapService);
-    setLayerStates(ws.map.layerStates as any);
-    if (mapRef.current?.getMap?.()) {
-      mapRef.current.getMap()?.setView(ws.map.center as any, ws.map.zoom);
-    }
-    if (ws.drawings) {
-      mapRef.current?.loadDrawingGeoJSON?.(ws.drawings);
-    }
-    toast.success('Workspace loaded');
   }, [workspaceName]);
 
   // Idle preload of heavy components to reduce interaction latency
@@ -343,6 +358,7 @@ const Index = () => {
               </Button>
               <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate('/analytics')}>Analytics</Button>
               <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate('/billing')}>Billing</Button>
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate('/login')}>Login</Button>
               <div className="hidden md:flex items-center gap-2">
                 <input
                   className="px-2 py-1 rounded border text-xs bg-background"
@@ -364,8 +380,14 @@ const Index = () => {
                     const { BookmarksService } = await import('@/services/BookmarksService');
                     await BookmarksService.add(title, { lat: c.lat, lng: c.lng, z, svc: selectedMapService, layers: layerStates });
                     toast.success('Bookmarked');
-                  } catch (e) {
-                    toast.error('Failed to add bookmark');
+                  } catch (e: any) {
+                    console.error('Failed to add bookmark:', e);
+                    if (e.message?.includes('Not authenticated')) {
+                      toast.error('Please log in to save bookmarks');
+                      navigate('/login');
+                    } else {
+                      toast.error('Failed to add bookmark');
+                    }
                   }
                 }} title="Bookmark"><Bookmark className="w-3.5 h-3.5" /></Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowBookmarks(true)} title="Bookmarks">Bookmarks</Button>

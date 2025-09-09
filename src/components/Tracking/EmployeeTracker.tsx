@@ -70,25 +70,18 @@ const EmployeeTracker: React.FC<EmployeeTrackerProps> = ({ onLocationSelect, map
 
   const loadEmployeeLocations = async () => {
     try {
-      const { data, error } = await supabase
-        .from('gps_locations')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-      
-      if (error) throw error;
-      
-      const locations: EmployeeLocation[] = (data || []).map((loc: any) => ({
-        id: loc.id,
-        employee_id: loc.user_id || loc.device_id,
-        latitude: loc.latitude,
-        longitude: loc.longitude,
-        timestamp: loc.created_at,
-        accuracy: loc.accuracy || 0,
-        device_id: loc.device_id
+      // For demo purposes, create simulated locations for employees
+      const simulatedLocations: EmployeeLocation[] = employees.map((emp, index) => ({
+        id: `loc-${emp.id}`,
+        employee_id: emp.id,
+        latitude: 36.6837 + (Math.random() - 0.5) * 0.02, // Near Patrick County
+        longitude: -80.2876 + (Math.random() - 0.5) * 0.02,
+        timestamp: new Date(Date.now() - Math.random() * 60 * 60 * 1000).toISOString(), // Within last hour
+        accuracy: 5 + Math.random() * 10,
+        device_id: `device-${index}`
       }));
       
-      setEmployeeLocations(locations);
+      setEmployeeLocations(simulatedLocations);
     } catch (error) {
       console.error('Error loading employee locations:', error);
       toast.error('Failed to load employee locations');

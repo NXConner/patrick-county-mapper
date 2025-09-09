@@ -12,13 +12,27 @@ export interface WorkspaceVersion {
 
 export class WorkspaceVersionsService {
   static async createVersion(workspaceName: string, payload: WorkspaceState): Promise<number> {
-    const current = await this.getLatestVersion(workspaceName);
-    const next = (current?.version ?? 0) + 1;
-    const { error } = await supabase
-      .from('workspace_versions')
-      .insert({ workspace_name: workspaceName, version: next, payload: payload as unknown as Json });
-    if (error) throw error;
-    return next;
+    try {
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error('Not authenticated');
+
+      const current = await this.getLatestVersion(workspaceName);
+      const next = (current?.version ?? 0) + 1;
+      
+      const { error } = await supabase
+        .from('workspace_versions')
+        .insert({ 
+          workspace_name: workspaceName, 
+          version: next,
+          payload: payload as unknown as Json
+        });
+      
+      if (error) throw error;
+      return next;
+    } catch (error) {
+      console.error('Failed to create workspace version:', error);
+      throw error;
+    }
   }
 
   static async getLatestVersion(workspaceName: string): Promise<WorkspaceVersion | null> {

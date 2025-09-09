@@ -30,19 +30,38 @@ export class WorkspaceService {
 	static async save(state: WorkspaceState): Promise<void> {
 		// Try Supabase first
 		try {
+			const user = (await supabase.auth.getUser()).data.user;
+			if (!user) throw new Error('Not authenticated');
+			
 			await supabase.from('workspaces').upsert({
 				name: state.name,
 				payload: state as unknown as Json,
+				created_by: user.id,
 				updated_at: new Date().toISOString(),
 			}).throwOnError();
+			
 			// Create a version entry
-			await WorkspaceVersionsService.createVersion(state.name, state);
+			try {
+				await WorkspaceVersionsService.createVersion(state.name, state);
+			} catch (versionError) {
+				console.warn('Failed to create version:', versionError);
+			}
 			return;
-		} catch {
+		} catch (error) {
+			console.warn('Supabase save failed, using offline fallback:', error);
 			// enqueue upsert offline
 			try {
 				const { OfflineQueueService } = await import('./OfflineQueueService');
-				await OfflineQueueService.enqueue({ id: crypto.randomUUID(), type: 'workspace_upsert', payload: { name: state.name, payload: state, updated_at: new Date().toISOString() }, createdAt: Date.now() });
+				await OfflineQueueService.enqueue({ 
+					id: crypto.randomUUID(), 
+					type: 'workspace_upsert', 
+					payload: { 
+						name: state.name, 
+						payload: state, 
+						updated_at: new Date().toISOString() 
+					}, 
+					createdAt: Date.now() 
+				});
 			} catch {}
 		}
 
