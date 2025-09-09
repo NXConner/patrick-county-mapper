@@ -25,6 +25,21 @@ router.post("/ai/segment", requireRole("admin"), async (req: Request, res: Respo
   }
 });
 
+// Upload image (base64 in JSON) and segment within AOI (bounds required)
+router.post("/ai/segment-image", requireRole("admin"), async (req: Request, res: Response) => {
+  try {
+    const svc = new SegmentationService();
+    const aoi = req.body?.aoi;
+    const base64 = req.body?.imageBase64;
+    if (!aoi) return res.status(400).json({ error: "Missing aoi" });
+    if (!base64) return res.status(400).json({ error: "Missing imageBase64" });
+    const out = await svc.segmentFromImageBuffer(aoi, base64);
+    res.json(out);
+  } catch (e: any) {
+    res.status(400).json({ error: String(e?.message || e) });
+  }
+});
+
 // Minimal endpoints to list and get AI jobs via Supabase (for debugging)
 router.get("/ai/jobs", requireRole("admin"), async (_req: Request, res: Response) => {
   const url = process.env.SUPABASE_URL;

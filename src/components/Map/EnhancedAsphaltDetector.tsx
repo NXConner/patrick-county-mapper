@@ -50,6 +50,8 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
   const [autoScan, setAutoScan] = useState<boolean>(controlledAutoScan ?? false);
   const [showLabels, setShowLabels] = useState<boolean>(controlledShowLabels ?? true);
   const debounceId = useRef<number | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [uploading, setUploading] = useState<boolean>(false);
 
   useEffect(() => {
     if (map && !detectionLayer.current) {
@@ -352,6 +354,66 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
           >
             Clear
           </Button>
+        </div>
+
+        {/* Optional image/URL segmentation */}
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">Segment custom image (URL or upload)</div>
+          <div className="flex gap-2">
+            <input className="border rounded px-2 py-1 text-xs flex-1" placeholder="https://... image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            <Button size="sm" variant="outline" disabled={!imageUrl || !map || uploading} onClick={async () => {
+              if (!map) return;
+              try {
+                setUploading(true);
+                const b = map.getBounds();
+                const resp = await fetch(`/admin/ai/segment`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aoi: { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() }, imageUrl }) });
+                const json = await resp.json();
+                if (json?.geojson) {
+                  // Draw server result polygons
+                  if (detectionLayer.current) detectionLayer.current.clearLayers();
+                  (json.geojson.features || []).forEach((f: any) => {
+                    if (f.geometry?.type === 'Polygon') {
+                      const ring = f.geometry.coordinates?.[0] || [];
+                      const latlngs = ring.map((p: [number, number]) => [p[1], p[0]]) as L.LatLngTuple[];
+                      const t = (f.properties?.surfaceType as any) || 'driveway';
+                      const color = getAsphaltColor(t);
+                      const poly = L.polygon(latlngs, { color, weight: 2, opacity: 0.9, fillOpacity: 0.18 });
+                      detectionLayer.current!.addLayer(poly);
+                    }
+                  });
+                }
+              } catch (e) {
+                console.error(e);
+              } finally { setUploading(false); }
+            }}>Run</Button>
+          </div>
+          <div>
+            <input type="file" accept="image/*" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file || !map) return;
+              setUploading(true);
+              try {
+                const b = map.getBounds();
+                const buf = await file.arrayBuffer();
+                const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+                const resp = await fetch(`/admin/ai/segment-image`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aoi: { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() }, imageBase64: base64 }) });
+                const json = await resp.json();
+                if (json?.geojson) {
+                  if (detectionLayer.current) detectionLayer.current.clearLayers();
+                  (json.geojson.features || []).forEach((f: any) => {
+                    if (f.geometry?.type === 'Polygon') {
+                      const ring = f.geometry.coordinates?.[0] || [];
+                      const latlngs = ring.map((p: [number, number]) => [p[1], p[0]]) as L.LatLngTuple[];
+                      const t = (f.properties?.surfaceType as any) || 'driveway';
+                      const color = getAsphaltColor(t);
+                      const poly = L.polygon(latlngs, { color, weight: 2, opacity: 0.9, fillOpacity: 0.18 });
+                      detectionLayer.current!.addLayer(poly);
+                    }
+                  });
+                }
+              } catch (err) { console.error(err); } finally { setUploading(false); }
+            }} />
+          </div>
         </div>
 
         {results.length > 0 && (
