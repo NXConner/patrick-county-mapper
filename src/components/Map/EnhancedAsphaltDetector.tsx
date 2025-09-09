@@ -146,9 +146,10 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
       const zoom = map.getZoom();
 
       // Queue AI job only for manual runs to avoid spamming when auto-scanning
+      let queuedId: string | null = null;
       if (!opts?.auto) {
         const aoi = { north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest(), zoom };
-        await AiJobsService.queue(aoi, { model: 'asphalt-v1' });
+        queuedId = await AiJobsService.queue(aoi, { model: 'asphalt-v1' });
       }
 
       // Show synthetic progress bar while waiting
@@ -159,7 +160,7 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
         });
       }, 250);
 
-      // Perform local analysis as an immediate fallback to provide user feedback
+      // Perform local analysis as immediate feedback
       const cv = new ComputerVisionService();
       const local = await cv.analyzeForAsphalt(bounds, zoom);
 
@@ -195,8 +196,40 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
         }
       });
 
-      // Optionally, attach jobId to layer for later inspection
-      (polygon => polygon)(null as any); // no-op to satisfy lints when not used
+      // If a job was queued, poll for server result and overlay when ready
+      if (queuedId && queuedId !== 'offline-queued') {
+        try {
+          const pollUntil = Date.now() + 20000; // 20s
+          const poll = async (): Promise<any | null> => {
+            const { AiJobsService } = await import('@/services/AiJobsService');
+            const j = await AiJobsService.get(queuedId!);
+            if (!j) return null;
+            if (j.status === 'succeeded' && j.result) return j.result;
+            if (j.status === 'failed' || j.status === 'cancelled') return null;
+            if (Date.now() > pollUntil) return null;
+            await new Promise(r => setTimeout(r, 1500));
+            return poll();
+          };
+          const serverResult = await poll();
+          if (serverResult?.geojson && map && detectionLayer.current) {
+            // Render server-result polygons in a distinct style
+            try {
+              const feats = serverResult.geojson.features as any[];
+              feats.forEach((f) => {
+                if (f.geometry?.type === 'Polygon') {
+                  const ring = f.geometry.coordinates?.[0] || [];
+                  const latlngs = ring.map((p: [number, number]) => [p[1], p[0]]) as L.LatLngTuple[];
+                  const t = (f.properties?.surfaceType as any) || 'driveway';
+                  const color = getAsphaltColor(t);
+                  const poly = L.polygon(latlngs, { color, weight: 2, opacity: 0.9, fillOpacity: 0.18, dashArray: '6,3' });
+                  detectionLayer.current!.addLayer(poly);
+                }
+              });
+              toast.success('Server AI results overlayed');
+            } catch {}
+          }
+        } catch {}
+      }
 
     } catch (error) {
       console.error('Detection failed:', error);

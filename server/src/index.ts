@@ -15,6 +15,7 @@ import geofencesRouter from "./routes/geofences.js";
 import tripsRouter from "./routes/trips.js";
 import analyticsRouter from "./routes/analytics.js";
 import adminRouter from "./routes/admin.js";
+import { startAiWorker } from "./services/ai/aiWorker.js";
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ app.use("/dashboard", express.static(path.join(__dirname, "public")));
 async function start() {
   await connectDatabase();
   const port = Number(process.env.PORT || 3000);
+  const stopWorker = startAiWorker();
   app.listen(port, () => console.log(`API on :${port}`));
 }
 

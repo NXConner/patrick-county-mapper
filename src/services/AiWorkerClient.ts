@@ -13,7 +13,12 @@ export function startAiWorker() {
       await supabase.from('ai_jobs').update({ status: 'running' }).eq('id', job.id);
       // simulate work
       await new Promise(r => setTimeout(r, 1500));
-      await supabase.from('ai_jobs').update({ status: 'succeeded', result: { note: 'Simulated result' } }).eq('id', job.id);
+      const aoi = job.aoi as any;
+      const fake = {
+        geojson: { type: 'FeatureCollection', features: [] },
+        summary: { totalAreaSqFt: 0, numSurfaces: 0, averageConfidence: 0.85, provider: 'dev-sim' }
+      };
+      await supabase.from('ai_jobs').update({ status: 'succeeded', result: fake }).eq('id', job.id);
     }
   };
   timer = window.setInterval(tick, 3000);
