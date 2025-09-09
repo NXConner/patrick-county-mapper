@@ -28,6 +28,7 @@ interface EnhancedAsphaltDetectorProps {
   onAutoScanChange?: (enabled: boolean) => void;
   showLabels?: boolean;
   onShowLabelsChange?: (enabled: boolean) => void;
+  onOpenEstimator?: (summary: { totalArea: number; surfaces: Array<{ type: string; area: number }> }) => void;
 }
 
 const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({ 
@@ -37,7 +38,8 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
   autoScan: controlledAutoScan,
   onAutoScanChange,
   showLabels: controlledShowLabels,
-  onShowLabelsChange
+  onShowLabelsChange,
+  onOpenEstimator
 }) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionProgress, setDetectionProgress] = useState(0);
@@ -249,6 +251,27 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
     setDetectionProgress(0);
   };
 
+  const handleExport = async (format: 'pdf' | 'json' | 'print') => {
+    try {
+      if (!map || results.length === 0) return;
+      const b = map.getBounds();
+      const data = {
+        surfaces: results,
+        totalArea: results.reduce((s, r) => s + r.area, 0),
+        drivewayCount: results.filter(r => r.surfaceType === 'driveway').length,
+        parkingLotCount: results.filter(r => r.surfaceType === 'parking_lot').length,
+        analysisDate: new Date(),
+        location: { center: [b.getCenter().lat, b.getCenter().lng] as [number, number], bounds: [[b.getSouth(), b.getWest()], [b.getNorth(), b.getEast()]] as [[number, number], [number, number]] },
+      };
+      const { ExportService } = await import('@/services/ExportService');
+      if (format === 'pdf') await ExportService.exportAsPDF(data as any, { includeMap: false });
+      else if (format === 'json') await ExportService.generateReport(data as any, {});
+      else await ExportService.printAnalysis(data as any, {});
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   if (isMinimized) {
     return (
       <Card className="fixed bottom-4 right-4 z-40 w-64 p-3 shadow-xl">
@@ -331,6 +354,14 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
           </Button>
         </div>
 
+        {results.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            <Button size="sm" variant="secondary" onClick={() => handleExport('print')}>Print</Button>
+            <Button size="sm" variant="secondary" onClick={() => handleExport('pdf')}>PDF</Button>
+            <Button size="sm" variant="secondary" onClick={() => handleExport('json')}>Report</Button>
+          </div>
+        )}
+
         {/* Auto-scan and Labels toggles */}
         <div className="flex items-center justify-between gap-2">
           <Button
@@ -395,6 +426,12 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
                 </div>
               </div>
             ))}
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => {
+                const total = results.reduce((s, r) => s + r.area, 0);
+                onOpenEstimator?.({ totalArea: total, surfaces: results.map(r => ({ type: r.surfaceType, area: r.area })) });
+              }}>Open Estimator</Button>
+            </div>
           </div>
         )}
       </div>
