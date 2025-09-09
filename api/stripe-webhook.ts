@@ -5,7 +5,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
     const secret = process.env.STRIPE_SECRET_KEY;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE;
-    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (!secret || !supabaseServiceKey || !supabaseUrl) {
       return res.status(202).send('Webhook not configured');
     }
