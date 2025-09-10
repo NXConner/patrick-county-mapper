@@ -285,6 +285,13 @@ const Index = () => {
     }
   }, []);
 
+  // Listen for AI Jobs custom events
+  useEffect(() => {
+    const handleOpenAiJobs = () => setShowAiJobs(true);
+    window.addEventListener('open-ai-jobs', handleOpenAiJobs);
+    return () => window.removeEventListener('open-ai-jobs', handleOpenAiJobs);
+  }, []);
+
   return (
     <div className="min-h-dvh h-[100dvh] w-full flex flex-col bg-gis-satellite safe-area-inset-top safe-area-inset-left safe-area-inset-right">
       {/* Enhanced Header */}
