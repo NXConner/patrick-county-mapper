@@ -50,6 +50,7 @@ export const BatchAoiTool: React.FC<Props> = ({ isOpen, onClose, getViewport }) 
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={onClose}>Close</Button>
             <Button onClick={queue} disabled={pending}>{pending ? 'Queuing…' : 'Queue'}</Button>
+            <Button variant="outline" onClick={async () => { const { toast } = await import('sonner'); toast?.info?.('Opening AI Jobs'); const ev = new CustomEvent('open-ai-jobs'); window.dispatchEvent(ev); }}>AI Jobs</Button>
           </div>
         </div>
       </DialogContent>

@@ -28,6 +28,7 @@ interface EnhancedAsphaltDetectorProps {
   onAutoScanChange?: (enabled: boolean) => void;
   showLabels?: boolean;
   onShowLabelsChange?: (enabled: boolean) => void;
+  onOpenEstimator?: (summary: { totalArea: number; surfaces: Array<{ type: string; area: number }> }) => void;
 }
 
 const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({ 
@@ -37,7 +38,8 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
   autoScan: controlledAutoScan,
   onAutoScanChange,
   showLabels: controlledShowLabels,
-  onShowLabelsChange
+  onShowLabelsChange,
+  onOpenEstimator
 }) => {
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectionProgress, setDetectionProgress] = useState(0);
@@ -48,6 +50,8 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
   const [autoScan, setAutoScan] = useState<boolean>(controlledAutoScan ?? false);
   const [showLabels, setShowLabels] = useState<boolean>(controlledShowLabels ?? true);
   const debounceId = useRef<number | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [uploading, setUploading] = useState<boolean>(false);
 
   useEffect(() => {
     if (map && !detectionLayer.current) {
@@ -146,9 +150,10 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
       const zoom = map.getZoom();
 
       // Queue AI job only for manual runs to avoid spamming when auto-scanning
+      let queuedId: string | null = null;
       if (!opts?.auto) {
         const aoi = { north: bounds.getNorth(), south: bounds.getSouth(), east: bounds.getEast(), west: bounds.getWest(), zoom };
-        await AiJobsService.queue(aoi, { model: 'asphalt-v1' });
+        queuedId = await AiJobsService.queue(aoi, { model: 'asphalt-v1' });
       }
 
       // Show synthetic progress bar while waiting
@@ -159,7 +164,7 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
         });
       }, 250);
 
-      // Perform local analysis as an immediate fallback to provide user feedback
+      // Perform local analysis as immediate feedback
       const cv = new ComputerVisionService();
       const local = await cv.analyzeForAsphalt(bounds, zoom);
 
@@ -195,8 +200,40 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
         }
       });
 
-      // Optionally, attach jobId to layer for later inspection
-      (polygon => polygon)(null as any); // no-op to satisfy lints when not used
+      // If a job was queued, poll for server result and overlay when ready
+      if (queuedId && queuedId !== 'offline-queued') {
+        try {
+          const pollUntil = Date.now() + 20000; // 20s
+          const poll = async (): Promise<any | null> => {
+            const { AiJobsService } = await import('@/services/AiJobsService');
+            const j = await AiJobsService.get(queuedId!);
+            if (!j) return null;
+            if (j.status === 'succeeded' && j.result) return j.result;
+            if (j.status === 'failed' || j.status === 'cancelled') return null;
+            if (Date.now() > pollUntil) return null;
+            await new Promise(r => setTimeout(r, 1500));
+            return poll();
+          };
+          const serverResult = await poll();
+          if (serverResult?.geojson && map && detectionLayer.current) {
+            // Render server-result polygons in a distinct style
+            try {
+              const feats = serverResult.geojson.features as any[];
+              feats.forEach((f) => {
+                if (f.geometry?.type === 'Polygon') {
+                  const ring = f.geometry.coordinates?.[0] || [];
+                  const latlngs = ring.map((p: [number, number]) => [p[1], p[0]]) as L.LatLngTuple[];
+                  const t = (f.properties?.surfaceType as any) || 'driveway';
+                  const color = getAsphaltColor(t);
+                  const poly = L.polygon(latlngs, { color, weight: 2, opacity: 0.9, fillOpacity: 0.18, dashArray: '6,3' });
+                  detectionLayer.current!.addLayer(poly);
+                }
+              });
+              toast.success('Server AI results overlayed');
+            } catch {}
+          }
+        } catch {}
+      }
 
     } catch (error) {
       console.error('Detection failed:', error);
@@ -214,6 +251,27 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
     }
     setResults([]);
     setDetectionProgress(0);
+  };
+
+  const handleExport = async (format: 'pdf' | 'json' | 'print') => {
+    try {
+      if (!map || results.length === 0) return;
+      const b = map.getBounds();
+      const data = {
+        surfaces: results,
+        totalArea: results.reduce((s, r) => s + r.area, 0),
+        drivewayCount: results.filter(r => r.surfaceType === 'driveway').length,
+        parkingLotCount: results.filter(r => r.surfaceType === 'parking_lot').length,
+        analysisDate: new Date(),
+        location: { center: [b.getCenter().lat, b.getCenter().lng] as [number, number], bounds: [[b.getSouth(), b.getWest()], [b.getNorth(), b.getEast()]] as [[number, number], [number, number]] },
+      };
+      const { ExportService } = await import('@/services/ExportService');
+      if (format === 'pdf') await ExportService.exportAsPDF(data as any, { includeMap: false });
+      else if (format === 'json') await ExportService.generateReport(data as any, {});
+      else await ExportService.printAnalysis(data as any, {});
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   if (isMinimized) {
@@ -298,6 +356,74 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
           </Button>
         </div>
 
+        {/* Optional image/URL segmentation */}
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">Segment custom image (URL or upload)</div>
+          <div className="flex gap-2">
+            <input className="border rounded px-2 py-1 text-xs flex-1" placeholder="https://... image URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+            <Button size="sm" variant="outline" disabled={!imageUrl || !map || uploading} onClick={async () => {
+              if (!map) return;
+              try {
+                setUploading(true);
+                const b = map.getBounds();
+                const resp = await fetch(`/admin/ai/segment`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aoi: { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() }, imageUrl }) });
+                const json = await resp.json();
+                if (json?.geojson) {
+                  // Draw server result polygons
+                  if (detectionLayer.current) detectionLayer.current.clearLayers();
+                  (json.geojson.features || []).forEach((f: any) => {
+                    if (f.geometry?.type === 'Polygon') {
+                      const ring = f.geometry.coordinates?.[0] || [];
+                      const latlngs = ring.map((p: [number, number]) => [p[1], p[0]]) as L.LatLngTuple[];
+                      const t = (f.properties?.surfaceType as any) || 'driveway';
+                      const color = getAsphaltColor(t);
+                      const poly = L.polygon(latlngs, { color, weight: 2, opacity: 0.9, fillOpacity: 0.18 });
+                      detectionLayer.current!.addLayer(poly);
+                    }
+                  });
+                }
+              } catch (e) {
+                console.error(e);
+              } finally { setUploading(false); }
+            }}>Run</Button>
+          </div>
+          <div>
+            <input type="file" accept="image/*" onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file || !map) return;
+              setUploading(true);
+              try {
+                const b = map.getBounds();
+                const buf = await file.arrayBuffer();
+                const base64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+                const resp = await fetch(`/admin/ai/segment-image`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ aoi: { north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() }, imageBase64: base64 }) });
+                const json = await resp.json();
+                if (json?.geojson) {
+                  if (detectionLayer.current) detectionLayer.current.clearLayers();
+                  (json.geojson.features || []).forEach((f: any) => {
+                    if (f.geometry?.type === 'Polygon') {
+                      const ring = f.geometry.coordinates?.[0] || [];
+                      const latlngs = ring.map((p: [number, number]) => [p[1], p[0]]) as L.LatLngTuple[];
+                      const t = (f.properties?.surfaceType as any) || 'driveway';
+                      const color = getAsphaltColor(t);
+                      const poly = L.polygon(latlngs, { color, weight: 2, opacity: 0.9, fillOpacity: 0.18 });
+                      detectionLayer.current!.addLayer(poly);
+                    }
+                  });
+                }
+              } catch (err) { console.error(err); } finally { setUploading(false); }
+            }} />
+          </div>
+        </div>
+
+        {results.length > 0 && (
+          <div className="grid grid-cols-3 gap-2">
+            <Button size="sm" variant="secondary" onClick={() => handleExport('print')}>Print</Button>
+            <Button size="sm" variant="secondary" onClick={() => handleExport('pdf')}>PDF</Button>
+            <Button size="sm" variant="secondary" onClick={() => handleExport('json')}>Report</Button>
+          </div>
+        )}
+
         {/* Auto-scan and Labels toggles */}
         <div className="flex items-center justify-between gap-2">
           <Button
@@ -362,6 +488,12 @@ const EnhancedAsphaltDetector: React.FC<EnhancedAsphaltDetectorProps> = ({
                 </div>
               </div>
             ))}
+            <div className="flex justify-end">
+              <Button size="sm" onClick={() => {
+                const total = results.reduce((s, r) => s + r.area, 0);
+                onOpenEstimator?.({ totalArea: total, surfaces: results.map(r => ({ type: r.surfaceType, area: r.area })) });
+              }}>Open Estimator</Button>
+            </div>
           </div>
         )}
       </div>

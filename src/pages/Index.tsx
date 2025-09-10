@@ -567,6 +567,11 @@ const Index = () => {
                   if (totalArea > 0) setLastAreaSqFt(totalArea);
                 } catch {}
               }}
+              onOpenEstimator={({ totalArea, surfaces }) => {
+                setLastAreaSqFt(totalArea);
+                setLastSurfaces(surfaces);
+                setShowEstimator(true);
+              }}
               autoScan={autoAsphaltScan}
               onAutoScanChange={setAutoAsphaltScan}
               showLabels={showAsphaltLabels}
