@@ -1,10 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = 'https://vodglzbgqsafghlihivy.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvZGdsemJncXNhZmdobGloaXZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNDcwMDQsImV4cCI6MjA2NDkyMzAwNH0.uLAZ_zY3zY-QmDDXwkAuspCUW9NpotsTV5fVCiHf5mM';
+const url = (import.meta as any).env?.VITE_SUPABASE_URL as string | undefined;
+const anonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+if (!url || !anonKey) {
+	// eslint-disable-next-line no-console
+	console.warn('Supabase env vars missing: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+}
+
+export const supabase = createClient<Database>(url || '', anonKey || '', {
 	auth: {
 		storage: typeof window !== 'undefined' ? localStorage : undefined,
 		persistSession: true,
