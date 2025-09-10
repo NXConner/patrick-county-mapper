@@ -117,11 +117,13 @@ The APK will be generated in `android/app/build/outputs/apk/debug/`
 
 ## ⚙️ Environment
 
-Create `.env` with required keys and optional flags:
+Create `.env` with required keys and optional flags (see `.env.example`):
 
 ```bash
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
+# Optional: email for Nominatim compliance (appended as email=)
+VITE_NOMINATIM_EMAIL=you@example.com
 # Dev-only workers to simulate background processing
 VITE_ENABLE_AI_WORKER=true
 VITE_ENABLE_EXPORT_WORKER=true
