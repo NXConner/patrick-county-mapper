@@ -1,4 +1,4 @@
-import type { Geofence } from "../generated/prisma/index.js";
+import type { Geofence } from "@prisma/client";
 import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import { point, polygon } from "@turf/helpers";
 
