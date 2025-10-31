@@ -95,6 +95,14 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
+  worker: {
+    format: 'es',
+    rollupOptions: {
+      output: {
+        format: 'es'
+      }
+    }
+  },
   optimizeDeps: {
     include: [
       'react',
